@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
@@ -18,7 +17,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
-import { Eye, EyeOff, Upload, User, Mail, Lock, GitHub, Globe } from "lucide-react";
+import { Eye, EyeOff, Upload, User, Mail, Lock, Github, Globe } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 // Mock current user data
@@ -283,7 +282,7 @@ const Profile = () => {
                                 <FormControl>
                                   <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                      <GitHub className="h-5 w-5 text-gray-400" />
+                                      <Github className="h-5 w-5 text-gray-400" />
                                     </div>
                                     <Input placeholder="yourusername" className="pl-10" {...field} />
                                   </div>

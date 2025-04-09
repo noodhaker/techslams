@@ -30,7 +30,7 @@ const Questions = () => {
       question.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       question.content.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesTag = !tagFilter || question.tags.includes(tagFilter);
+    const matchesTag = !tagFilter || question.tags.some(tag => tag === tagFilter);
     
     return matchesSearch && matchesTag;
   });
