@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -61,6 +62,17 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				// Add custom colors for our Q&A platform
+				tech: {
+					primary: '#6366F1', // Indigo
+					secondary: '#4F46E5', // Deeper indigo
+					accent: '#8B5CF6', // Purple
+					highlight: '#A78BFA', // Light purple
+					success: '#10B981', // Green for successful actions
+					warning: '#F59E0B', // Amber for warnings
+					error: '#EF4444', // Red for errors
+					light: '#F3F4F6', // Light gray for backgrounds
 				}
 			},
 			borderRadius: {
