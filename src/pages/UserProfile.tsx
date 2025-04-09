@@ -4,6 +4,7 @@ import { useParams, Link } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { users, questions } from "@/data/mockData";
 import { Calendar, Award, MessageSquare, CheckCircle2, AlertTriangle } from "lucide-react";
 import QuestionCard from "@/components/question/QuestionCard";
