@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface Tag {
   id: number;
@@ -27,41 +28,23 @@ const Questions = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const { user } = useAuth();
+  const isMobile = useIsMobile();
+
+  // Fetch questions data
   const { data: questions, isLoading, isError } = useQuery({
     queryKey: ['questions'],
     queryFn: () => fetchQuestions(),
   });
 
-  const filterQuestionsByTag = (questions: Question[], selectedTag: string | null) => {
-    if (!selectedTag || selectedTag === 'all-tags') return questions;
+  // Create a consistent filter function that doesn't depend on conditionals
+  const filterQuestionsByTag = (questions: Question[], tagFilter: string | null) => {
+    if (!tagFilter || tagFilter === 'all-tags') return questions;
     return questions.filter(question => 
-      question.tags.some(tag => tag.name === selectedTag)
+      question.tags.some(tag => tag.name === tagFilter)
     );
   };
 
-  const filteredQuestions = React.useMemo(() => {
-    if (!questions) return [];
-
-    // Filter by search query
-    let filtered = questions.filter(question =>
-      question.title.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-
-    // Filter by tag
-    filtered = filterQuestionsByTag(filtered, selectedTag);
-
-    // Filter by user
-    if (user) {
-      filtered = filtered.filter(question => question.author.id === user.id);
-    }
-
-    return filtered;
-  }, [questions, searchQuery, selectedTag, user]);
-
-  if (isLoading) return <Layout><div className="container mx-auto mt-8">Loading...</div></Layout>;
-  if (isError) return <Layout><div className="container mx-auto mt-8">Error fetching questions</div></Layout>;
-  
-  // Extract unique tags from all questions
+  // Extract all unique tags from questions - always run this regardless of conditional logic
   const allTags: Tag[] = React.useMemo(() => {
     if (!questions) return [];
     
@@ -71,7 +54,7 @@ const Questions = () => {
       question.tags.forEach(tag => {
         if (!tagMap.has(tag.name)) {
           tagMap.set(tag.name, {
-            id: parseInt(tag.id) || Math.random(),
+            id: parseInt(tag.id.toString()) || Math.random(),
             name: tag.name
           });
         }
@@ -80,6 +63,34 @@ const Questions = () => {
     
     return Array.from(tagMap.values());
   }, [questions]);
+
+  // Apply all filters consistently
+  const filteredQuestions = React.useMemo(() => {
+    if (!questions) return [];
+
+    // Start with all questions
+    let filtered = [...questions];
+    
+    // Apply search filter
+    if (searchQuery) {
+      filtered = filtered.filter(question =>
+        question.title.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    // Apply tag filter
+    filtered = filterQuestionsByTag(filtered, selectedTag);
+
+    // Apply user filter - only if user is defined
+    if (user) {
+      filtered = filtered.filter(question => question.author.id === user.id);
+    }
+
+    return filtered;
+  }, [questions, searchQuery, selectedTag, user]);
+
+  if (isLoading) return <Layout><div className="container mx-auto mt-8">Loading...</div></Layout>;
+  if (isError) return <Layout><div className="container mx-auto mt-8">Error fetching questions</div></Layout>;
   
   return (
     <Layout>

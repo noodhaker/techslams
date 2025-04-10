@@ -58,14 +58,15 @@ export const fetchQuestions = async (): Promise<Question[]> => {
         views: q.views,
         hasBestAnswer: q.has_best_answer,
         createdAt: q.created_at,
+        authorId: q.user_id, // Add this line to fix the TypeScript error
         author: {
           id: q.user_id,
           name: 'User',  // Default name until we have profile data
           username: 'user', // Default username
           reputation: 1,
           avatar: null,
-          // Add missing required fields
-          role: 'User',
+          // Use 'user' instead of 'User' to match the type
+          role: 'user',
           joinDate: new Date().toISOString()
         },
         tags: questionTags,
@@ -141,14 +142,15 @@ export const fetchQuestionById = async (id: string): Promise<Question | undefine
       views: questionData.views,
       hasBestAnswer: questionData.has_best_answer,
       createdAt: questionData.created_at,
+      authorId: questionData.user_id, // Add this line to fix the TypeScript error
       author: {
         id: questionData.user_id,
         name: 'User',  // Default name until we have profile data
         username: 'user', // Default username
         reputation: 1,
         avatar: null,
-        // Add missing required fields
-        role: 'User',
+        // Use 'user' instead of 'User' to match the type
+        role: 'user',
         joinDate: new Date().toISOString()
       },
       tags: questionTags,
@@ -235,14 +237,15 @@ export const saveQuestion = async (question: Omit<Question, 'id'>): Promise<Ques
       views: savedQuestion.views || 0,
       hasBestAnswer: savedQuestion.has_best_answer || false,
       createdAt: savedQuestion.created_at,
+      authorId: authData.user.id, // Add this line to fix the TypeScript error
       author: {
         id: authData.user.id,
         name: authData.user.user_metadata?.username || 'Anonymous',
         username: authData.user.user_metadata?.username || 'anonymous',
         reputation: 1,
         avatar: null,
-        // Add missing required fields
-        role: 'User',
+        // Use 'user' instead of 'User' to match the type
+        role: 'user',
         joinDate: new Date().toISOString()
       },
       tags: question.tags,
