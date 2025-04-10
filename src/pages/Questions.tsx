@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -42,7 +43,7 @@ const Questions = () => {
   });
 
   const filterQuestionsByTag = (questions: Question[], selectedTag: string | null) => {
-    if (!selectedTag) return questions;
+    if (!selectedTag || selectedTag === 'all-tags') return questions;
     return questions.filter(question => 
       question.tags.some(tag => tag.name === selectedTag)
     );
@@ -82,7 +83,7 @@ const Questions = () => {
           </SelectTrigger>
           <SelectContent className="max-h-48">
             <ScrollArea>
-              <SelectItem value="">All Tags</SelectItem>
+              <SelectItem value="all-tags">All Tags</SelectItem>
               {tags.map((tag) => (
                 <SelectItem key={tag.id} value={tag.name}>
                   {tag.name}
