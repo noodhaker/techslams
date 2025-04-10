@@ -1,5 +1,4 @@
-
-import React from "react";
+import React, { useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -16,6 +15,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/context/AuthContext";
 
 const formSchema = z.object({
   username: z.string().min(3, { message: "Username must be at least 3 characters" }),
@@ -34,6 +34,13 @@ const Signup = () => {
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { signUp, user } = useAuth();
+
+  useEffect(() => {
+    if (user) {
+      navigate("/");
+    }
+  }, [user, navigate]);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -45,15 +52,29 @@ const Signup = () => {
     },
   });
 
-  const onSubmit = (data: FormValues) => {
-    console.log("Signup data:", data);
-    // Simulate signup success - in real app, this would register with your backend
-    toast({
-      title: "Account created!",
-      description: "Welcome to TechHelpCircle",
-    });
-    // Redirect to home page after successful signup
-    navigate("/");
+  const onSubmit = async (data: FormValues) => {
+    const { error, user } = await signUp(data.email, data.password, data.username);
+    
+    if (error) {
+      console.error("Signup error:", error);
+      toast({
+        title: "Signup failed",
+        description: error.message || "An error occurred during signup. Please try again.",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Account created!",
+        description: "Welcome to TechHelpCircle. Please check your email to confirm your account.",
+      });
+      
+      if (user?.identities?.length === 0) {
+        toast({
+          title: "Email verification required",
+          description: "Please check your email for a verification link.",
+        });
+      }
+    }
   };
 
   return (

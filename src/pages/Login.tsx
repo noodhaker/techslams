@@ -1,5 +1,4 @@
-
-import React from "react";
+import React, { useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -16,6 +15,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/context/AuthContext";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
@@ -29,6 +29,13 @@ const Login = () => {
   const [showPassword, setShowPassword] = React.useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { signIn, user } = useAuth();
+
+  useEffect(() => {
+    if (user) {
+      navigate("/");
+    }
+  }, [user, navigate]);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -39,15 +46,22 @@ const Login = () => {
     },
   });
 
-  const onSubmit = (data: FormValues) => {
-    console.log("Login data:", data);
-    // Simulate login success - in real app, this would validate with your backend
-    toast({
-      title: "Login successful!",
-      description: "Welcome back to TechHelpCircle",
-    });
-    // Redirect to home page after successful login
-    navigate("/");
+  const onSubmit = async (data: FormValues) => {
+    const { error } = await signIn(data.email, data.password);
+    
+    if (error) {
+      console.error("Login error:", error);
+      toast({
+        title: "Login failed",
+        description: error.message || "Please check your credentials and try again.",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Login successful!",
+        description: "Welcome back to TechHelpCircle",
+      });
+    }
   };
 
   return (

@@ -1,136 +1,120 @@
-
-import React, { useState } from "react";
-import { useSearchParams } from "react-router-dom";
-import Layout from "@/components/layout/Layout";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { 
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { fetchQuestions } from '@/api/questions';
+import { Question } from '@/types';
+import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Search, Filter, PlusCircle } from "lucide-react";
-import QuestionCard from "@/components/question/QuestionCard";
-import { questions } from "@/data/mockData";
-import { Link } from "react-router-dom";
+} from "@/components/ui/select"
+import { Button } from "@/components/ui/button";
+
+interface Tag {
+  id: number;
+  name: string;
+}
+
+const tags: Tag[] = [
+  { id: 1, name: 'javascript' },
+  { id: 2, name: 'react' },
+  { id: 3, name: 'node.js' },
+  { id: 4, name: 'html' },
+  { id: 5, name: 'css' },
+  { id: 6, name: 'python' },
+  { id: 7, name: 'typescript' },
+  { id: 8, name: 'java' },
+  { id: 9, name: 'php' },
+  { id: 10, name: 'sql' },
+];
 
 const Questions = () => {
-  const [searchParams] = useSearchParams();
-  const tagFilter = searchParams.get("tag");
-  
-  const [searchTerm, setSearchTerm] = useState("");
-  const [sortBy, setSortBy] = useState("newest");
-  
-  // Filter questions based on search term and tag filter
-  const filteredQuestions = questions.filter(question => {
-    const matchesSearch = searchTerm === "" || 
-      question.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      question.content.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesTag = !tagFilter || question.tags.some(tag => tag === tagFilter);
-    
-    return matchesSearch && matchesTag;
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const { data: questions, isLoading, isError } = useQuery({
+    queryKey: ['questions'],
+    queryFn: () => fetchQuestions(),
   });
-  
-  // Sort questions based on sort selection
-  const sortedQuestions = [...filteredQuestions].sort((a, b) => {
-    switch (sortBy) {
-      case "newest":
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      case "votes":
-        return b.votes - a.votes;
-      case "answers":
-        return b.answers.length - a.answers.length;
-      case "views":
-        return b.views - a.views;
-      default:
-        return 0;
-    }
-  });
+
+  const filterQuestionsByTag = (questions: Question[], selectedTag: string | null) => {
+    if (!selectedTag) return questions;
+    return questions.filter(question => 
+      question.tags.some(tag => tag.name === selectedTag)
+    );
+  };
+
+  const filteredQuestions = React.useMemo(() => {
+    if (!questions) return [];
+
+    let filtered = questions.filter(question =>
+      question.title.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    filtered = filterQuestionsByTag(filtered, selectedTag);
+
+    return filtered;
+  }, [questions, searchQuery, selectedTag]);
+
+  if (isLoading) return <div>Loading...</div>;
+  if (isError) return <div>Error fetching questions</div>;
   
   return (
-    <Layout>
-      <div className="py-6">
-        <div className="max-w-4xl mx-auto">
-          <div className="mb-8">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
-              <h1 className="text-3xl font-bold text-gray-900 mb-2 sm:mb-0">
-                {tagFilter ? `Questions tagged [${tagFilter}]` : "All Questions"}
-              </h1>
-              <Link to="/ask">
-                <Button className="bg-tech-primary hover:bg-tech-secondary">
-                  <PlusCircle className="h-4 w-4 mr-2" />
-                  Ask Question
-                </Button>
-              </Link>
-            </div>
-            
-            {tagFilter && (
-              <div className="mb-4">
-                <Badge variant="outline" className="bg-tech-light text-tech-primary">
-                  {tagFilter}
-                </Badge>
-              </div>
-            )}
-            
-            <div className="flex flex-col sm:flex-row gap-4 mb-6">
-              <div className="relative flex-grow">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search className="h-5 w-5 text-gray-400" />
-                </div>
-                <Input
-                  type="text"
-                  placeholder="Search questions..."
-                  className="pl-10"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <Filter className="h-5 w-5 text-gray-400" />
-                <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger className="w-[150px]">
-                    <SelectValue placeholder="Sort by" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="newest">Newest</SelectItem>
-                    <SelectItem value="votes">Most Votes</SelectItem>
-                    <SelectItem value="answers">Most Answers</SelectItem>
-                    <SelectItem value="views">Most Views</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            
-            <div className="text-sm text-gray-500 mb-4">
-              {sortedQuestions.length} {sortedQuestions.length === 1 ? 'question' : 'questions'}
-            </div>
-          </div>
-          
-          <div className="space-y-6">
-            {sortedQuestions.length > 0 ? (
-              sortedQuestions.map((question) => (
-                <QuestionCard key={question.id} question={question} />
-              ))
-            ) : (
-              <div className="text-center py-12">
-                <p className="text-gray-500 mb-2">No questions found</p>
-                <p className="text-sm text-gray-400 mb-6">
-                  {searchTerm || tagFilter ? "Try different search criteria" : "Be the first to ask a question!"}
-                </p>
-                <Link to="/ask">
-                  <Button>Ask a Question</Button>
-                </Link>
-              </div>
-            )}
-          </div>
-        </div>
+    <div className="container mx-auto mt-8">
+      <h1 className="text-3xl font-bold mb-4">Questions</h1>
+
+      <div className="flex flex-col md:flex-row items-center justify-between mb-4">
+        <Input
+          type="text"
+          placeholder="Search questions..."
+          className="w-full md:w-1/3 mb-2 md:mb-0"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+
+        <Select onValueChange={setSelectedTag}>
+          <SelectTrigger className="w-full md:w-64">
+            <SelectValue placeholder="Filter by tag" />
+          </SelectTrigger>
+          <SelectContent className="max-h-48">
+            <ScrollArea>
+              <SelectItem value="">All Tags</SelectItem>
+              {tags.map((tag) => (
+                <SelectItem key={tag.id} value={tag.name}>
+                  {tag.name}
+                </SelectItem>
+              ))}
+            </ScrollArea>
+          </SelectContent>
+        </Select>
+
+        <Link to="/ask">
+          <Button className="bg-tech-primary hover:bg-tech-secondary">
+            Ask Question
+          </Button>
+        </Link>
       </div>
-    </Layout>
+
+      <ul>
+        {filteredQuestions.map(question => (
+          <li key={question.id} className="mb-4 p-4 border rounded-md shadow-sm">
+            <Link to={`/questions/${question.id}`} className="text-xl font-semibold hover:text-tech-primary">
+              {question.title}
+            </Link>
+            <p className="text-gray-600 mt-1">{question.content.substring(0, 100)}...</p>
+            <div className="mt-2">
+              {question.tags.map(tag => (
+                <Badge key={tag.id} className="mr-2">{tag.name}</Badge>
+              ))}
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 };
 

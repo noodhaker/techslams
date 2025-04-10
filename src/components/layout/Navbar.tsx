@@ -1,16 +1,24 @@
 
 import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Search, User, PlusCircle } from "lucide-react";
+import { Menu, X, Search, User, PlusCircle, LogOut } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { useAuth } from "@/context/AuthContext";
 
 const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   
-  // Mock authentication state - in a real app, this would come from an auth context
-  const isAuthenticated = false;
+  // Get authentication state from our context
+  const { user, signOut } = useAuth();
+  const isAuthenticated = !!user;
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/');
+  };
 
   return (
     <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
@@ -91,6 +99,11 @@ const Navbar = () => {
                     Ask Question
                   </Button>
                 </Link>
+
+                <Button variant="ghost" onClick={handleSignOut}>
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Sign out
+                </Button>
               </>
             ) : (
               <>
@@ -176,8 +189,8 @@ const Navbar = () => {
                     </div>
                   </div>
                   <div className="ml-3">
-                    <div className="text-base font-medium text-gray-800">User Name</div>
-                    <div className="text-sm font-medium text-gray-500">user@example.com</div>
+                    <div className="text-base font-medium text-gray-800">{user?.user_metadata?.username || 'User'}</div>
+                    <div className="text-sm font-medium text-gray-500">{user?.email}</div>
                   </div>
                 </div>
                 <div className="mt-3 space-y-1">
@@ -202,7 +215,13 @@ const Navbar = () => {
                   >
                     Ask Question
                   </Link>
-                  <button className="block w-full text-left px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100">
+                  <button 
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      signOut();
+                    }}
+                    className="block w-full text-left px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100"
+                  >
                     Sign out
                   </button>
                 </div>
