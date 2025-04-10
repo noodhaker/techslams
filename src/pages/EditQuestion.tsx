@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,17 +10,65 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Layout from "@/components/layout/Layout";
-import { saveQuestion } from '@/api/questions';
+import { fetchQuestionById, updateQuestion } from '@/api/questions';
 
-const AskQuestion = () => {
+const EditQuestion = () => {
+  const { id } = useParams<{ id: string }>();
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
+
+  // Load question data
+  useEffect(() => {
+    const loadQuestionData = async () => {
+      if (!id) return;
+      setIsLoading(true);
+      
+      try {
+        const questionData = await fetchQuestionById(id);
+        if (questionData) {
+          // Check if the user is the author
+          if (user && questionData.authorId !== user.id) {
+            toast({
+              title: "Unauthorized",
+              description: "You can only edit your own questions",
+              variant: "destructive",
+            });
+            navigate(`/questions/${id}`);
+            return;
+          }
+          
+          setTitle(questionData.title);
+          setContent(questionData.content);
+          setTags(questionData.tags.map(tag => tag.name));
+        } else {
+          toast({
+            title: "Not Found",
+            description: "The question you're trying to edit doesn't exist",
+            variant: "destructive",
+          });
+          navigate('/questions');
+        }
+      } catch (error) {
+        console.error("Error loading question:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load question details",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadQuestionData();
+  }, [id, navigate, toast, user]);
 
   const handleAddTag = () => {
     if (newTag && !tags.includes(newTag)) {
@@ -36,6 +84,8 @@ const AskQuestion = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!id) return;
+    
     if (!title || !content || tags.length === 0) {
       toast({
         title: "Error",
@@ -50,54 +100,35 @@ const AskQuestion = () => {
     try {
       // Prepare tags in the correct format
       const formattedTags = tags.map(tagName => ({
-        id: '',  // This will be assigned by Supabase
+        id: '',  // This will be assigned or matched in the backend
         name: tagName,
         count: 0
       }));
       
-      // Create a new question object that matches our Question type (with authorId)
-      const newQuestion = {
+      // Update the question
+      const updatedQuestion = await updateQuestion(id, {
         title,
         content,
-        votes: 0,
-        answerCount: 0,
-        views: 0,
-        hasBestAnswer: false,
-        createdAt: new Date().toISOString(),
-        authorId: user?.id || '',
-        author: {
-          id: user?.id || '',
-          name: user?.user_metadata?.username || 'Anonymous',
-          username: user?.user_metadata?.username || 'anonymous',
-          reputation: 1,
-          avatar: null,
-          role: 'user' as 'user',  // Fix the type here by using 'as' assertion
-          joinDate: new Date().toISOString()
-        },
-        tags: formattedTags,
-        answers: []
-      };
+        tags: formattedTags
+      });
       
-      // Save the question to Supabase
-      const savedQuestion = await saveQuestion(newQuestion);
-      
-      if (savedQuestion) {
+      if (updatedQuestion) {
         toast({
           title: "Success",
-          description: "Your question has been posted."
+          description: "Your question has been updated."
         });
         
         // Redirect to the question page
-        navigate(`/questions/${savedQuestion.id}`);
+        navigate(`/questions/${id}`);
       } else {
         toast({
           title: "Error",
-          description: "Failed to save your question. Please try again.",
+          description: "Failed to update your question. Please try again.",
           variant: "destructive"
         });
       }
     } catch (error) {
-      console.error("Error posting question:", error);
+      console.error("Error updating question:", error);
       toast({
         title: "Error",
         description: "Something went wrong. Please try again.",
@@ -108,10 +139,20 @@ const AskQuestion = () => {
     }
   };
 
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="container mx-auto mt-8">
+          <p>Loading question details...</p>
+        </div>
+      </Layout>
+    );
+  }
+
   return (
     <Layout>
       <div className="container mx-auto mt-8">
-        <h1 className="text-3xl font-bold mb-4">Ask a Question</h1>
+        <h1 className="text-3xl font-bold mb-4">Edit Question</h1>
         
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
@@ -173,9 +214,16 @@ const AskQuestion = () => {
             </div>
           </div>
           
-          <div>
+          <div className="flex space-x-2">
             <Button type="submit" className="bg-tech-primary hover:bg-tech-secondary" disabled={isSubmitting}>
-              {isSubmitting ? 'Submitting...' : 'Post Question'}
+              {isSubmitting ? 'Updating...' : 'Update Question'}
+            </Button>
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => navigate(`/questions/${id}`)}
+            >
+              Cancel
             </Button>
           </div>
         </form>
@@ -184,4 +232,4 @@ const AskQuestion = () => {
   );
 };
 
-export default AskQuestion;
+export default EditQuestion;

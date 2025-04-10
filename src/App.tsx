@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from "./context/AuthContext";
 import Index from "./pages/Index";
 import QuestionDetail from "./pages/QuestionDetail";
 import AskQuestion from "./pages/AskQuestion";
+import EditQuestion from "./pages/EditQuestion";
 import UserProfile from "./pages/UserProfile";
 import Questions from "./pages/Questions";
 import Tags from "./pages/Tags";
@@ -37,6 +38,11 @@ const AppRoutes = () => {
       <Route path="/" element={<Index />} />
       <Route path="/questions" element={<Questions />} />
       <Route path="/questions/:id" element={<QuestionDetail />} />
+      <Route path="/questions/:id/edit" element={
+        <ProtectedRoute>
+          <EditQuestion />
+        </ProtectedRoute>
+      } />
       <Route path="/ask" element={
         <ProtectedRoute>
           <AskQuestion />
