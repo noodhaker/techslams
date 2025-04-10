@@ -3,16 +3,16 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { fetchQuestions } from '@/api/questions';
 import { Question } from '@/types';
-import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import { ScrollArea } from "@/components/ui/scroll-area"
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
+} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 
 interface Tag {
