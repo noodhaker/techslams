@@ -7,13 +7,7 @@ export const fetchQuestions = async (): Promise<Question[]> => {
     // Fetch questions from Supabase
     const { data: questionData, error: questionError } = await supabase
       .from('questions')
-      .select(`
-        *,
-        question_tags(
-          tag_id
-        )
-      `)
-      .order('created_at', { ascending: false });
+      .select('*');
 
     if (questionError) {
       console.error('Error fetching questions:', questionError);
@@ -30,23 +24,30 @@ export const fetchQuestions = async (): Promise<Question[]> => {
       return [];
     }
 
-    // Get user profiles for the authors
-    const userIds = [...new Set(questionData.map(q => q.user_id))];
-    
-    // For now, we'll use default user info since we don't have a profiles table
-    // In a real app, you would fetch user profiles from a profiles table
-    
+    // Fetch question_tags relationships
+    const { data: questionTagsData, error: questionTagsError } = await supabase
+      .from('question_tags')
+      .select('*');
+
+    if (questionTagsError) {
+      console.error('Error fetching question_tags:', questionTagsError);
+      return [];
+    }
+
     // Map database questions to our Question interface
-    const questions: Question[] = questionData.map(q => {
+    const questions: Question[] = questionData?.map(q => {
       // Find tags for this question
-      const questionTagIds = q.question_tags.map((qt: any) => qt.tag_id);
+      const questionTagIds = questionTagsData
+        ?.filter(qt => qt.question_id === q.id)
+        ?.map(qt => qt.tag_id) || [];
+      
       const questionTags = tagsData
-        .filter((tag: any) => questionTagIds.includes(tag.id))
-        .map((tag: any) => ({
+        ?.filter(tag => questionTagIds.includes(tag.id))
+        ?.map(tag => ({
           id: tag.id,
           name: tag.name,
           count: tag.count
-        }));
+        })) || [];
 
       return {
         id: q.id,
@@ -62,12 +63,15 @@ export const fetchQuestions = async (): Promise<Question[]> => {
           name: 'User',  // Default name until we have profile data
           username: 'user', // Default username
           reputation: 1,
-          avatar: null
+          avatar: null,
+          // Add missing required fields
+          role: 'User',
+          joinDate: new Date().toISOString()
         },
         tags: questionTags,
-        answers: [] // We'll load answers separately when needed
+        answers: []
       };
-    });
+    }) || [];
 
     return questions;
   } catch (e) {
@@ -81,17 +85,23 @@ export const fetchQuestionById = async (id: string): Promise<Question | undefine
     // Fetch the question with the given ID
     const { data: questionData, error: questionError } = await supabase
       .from('questions')
-      .select(`
-        *,
-        question_tags(
-          tag_id
-        )
-      `)
+      .select('*')
       .eq('id', id)
       .single();
 
     if (questionError) {
       console.error('Error fetching question:', questionError);
+      return undefined;
+    }
+
+    // Fetch tags for this question
+    const { data: questionTagsData, error: questionTagsError } = await supabase
+      .from('question_tags')
+      .select('*')
+      .eq('question_id', id);
+
+    if (questionTagsError) {
+      console.error('Error fetching question tags:', questionTagsError);
       return undefined;
     }
 
@@ -105,15 +115,21 @@ export const fetchQuestionById = async (id: string): Promise<Question | undefine
       return undefined;
     }
 
+    if (!questionData) {
+      return undefined;
+    }
+
     // Find tags for this question
-    const questionTagIds = questionData.question_tags.map((qt: any) => qt.tag_id);
+    const questionTagIds = questionTagsData
+      ?.map(qt => qt.tag_id) || [];
+    
     const questionTags = tagsData
-      .filter((tag: any) => questionTagIds.includes(tag.id))
-      .map((tag: any) => ({
+      ?.filter(tag => questionTagIds.includes(tag.id))
+      ?.map(tag => ({
         id: tag.id,
         name: tag.name,
         count: tag.count
-      }));
+      })) || [];
 
     // Map the database question to our Question interface
     const question: Question = {
@@ -130,7 +146,10 @@ export const fetchQuestionById = async (id: string): Promise<Question | undefine
         name: 'User',  // Default name until we have profile data
         username: 'user', // Default username
         reputation: 1,
-        avatar: null
+        avatar: null,
+        // Add missing required fields
+        role: 'User',
+        joinDate: new Date().toISOString()
       },
       tags: questionTags,
       answers: [] // We'll load answers separately if needed
@@ -145,10 +164,10 @@ export const fetchQuestionById = async (id: string): Promise<Question | undefine
 
 export const saveQuestion = async (question: Omit<Question, 'id'>): Promise<Question | null> => {
   try {
-    const { user } = await supabase.auth.getUser();
+    const { data: authData, error: authError } = await supabase.auth.getUser();
     
-    if (!user) {
-      console.error("User not authenticated");
+    if (authError || !authData.user) {
+      console.error("User not authenticated", authError);
       return null;
     }
 
@@ -172,7 +191,7 @@ export const saveQuestion = async (question: Omit<Question, 'id'>): Promise<Ques
     });
 
     const savedTags = await Promise.all(tagInsertPromises);
-    const validTags = savedTags.filter(tag => tag !== null) as any[];
+    const validTags = savedTags.filter(tag => tag !== null);
 
     // 2. Save the question
     const { data: savedQuestion, error: questionError } = await supabase
@@ -180,12 +199,12 @@ export const saveQuestion = async (question: Omit<Question, 'id'>): Promise<Ques
       .insert({
         title: question.title,
         content: question.content,
-        user_id: user.id
+        user_id: authData.user.id
       })
       .select()
       .single();
 
-    if (questionError) {
+    if (questionError || !savedQuestion) {
       console.error('Error saving question:', questionError);
       return null;
     }
@@ -207,25 +226,30 @@ export const saveQuestion = async (question: Omit<Question, 'id'>): Promise<Ques
     }
 
     // 4. Return the complete question object 
-    return {
+    const newQuestion: Question = {
       id: savedQuestion.id,
       title: savedQuestion.title,
       content: savedQuestion.content,
-      votes: savedQuestion.votes,
-      answerCount: savedQuestion.answer_count,
-      views: savedQuestion.views,
-      hasBestAnswer: savedQuestion.has_best_answer,
+      votes: savedQuestion.votes || 0,
+      answerCount: savedQuestion.answer_count || 0,
+      views: savedQuestion.views || 0,
+      hasBestAnswer: savedQuestion.has_best_answer || false,
       createdAt: savedQuestion.created_at,
       author: {
-        id: user.id,
-        name: user.user_metadata?.username || 'Anonymous',
-        username: user.user_metadata?.username || 'anonymous',
+        id: authData.user.id,
+        name: authData.user.user_metadata?.username || 'Anonymous',
+        username: authData.user.user_metadata?.username || 'anonymous',
         reputation: 1,
-        avatar: null
+        avatar: null,
+        // Add missing required fields
+        role: 'User',
+        joinDate: new Date().toISOString()
       },
       tags: question.tags,
       answers: []
     };
+
+    return newQuestion;
   } catch (e) {
     console.error("Error saving question:", e);
     return null;

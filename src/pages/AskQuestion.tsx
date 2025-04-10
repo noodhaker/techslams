@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
@@ -132,7 +133,9 @@ const AskQuestion = () => {
         name: user.user_metadata?.username || 'Anonymous',
         username: user.user_metadata?.username || 'anonymous',
         reputation: 1,
-        avatar: null
+        avatar: null,
+        role: 'User',
+        joinDate: new Date().toISOString()
       },
       tags: selectedTags.map((tagName, index) => ({
         id: `temp-${index}`,
