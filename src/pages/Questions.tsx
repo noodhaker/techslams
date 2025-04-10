@@ -23,19 +23,6 @@ interface Tag {
   name: string;
 }
 
-const tags: Tag[] = [
-  { id: 1, name: 'javascript' },
-  { id: 2, name: 'react' },
-  { id: 3, name: 'node.js' },
-  { id: 4, name: 'html' },
-  { id: 5, name: 'css' },
-  { id: 6, name: 'python' },
-  { id: 7, name: 'typescript' },
-  { id: 8, name: 'java' },
-  { id: 9, name: 'php' },
-  { id: 10, name: 'sql' },
-];
-
 const Questions = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
@@ -74,6 +61,26 @@ const Questions = () => {
   if (isLoading) return <Layout><div className="container mx-auto mt-8">Loading...</div></Layout>;
   if (isError) return <Layout><div className="container mx-auto mt-8">Error fetching questions</div></Layout>;
   
+  // Extract unique tags from all questions
+  const allTags: Tag[] = React.useMemo(() => {
+    if (!questions) return [];
+    
+    const tagMap = new Map<string, Tag>();
+    
+    questions.forEach(question => {
+      question.tags.forEach(tag => {
+        if (!tagMap.has(tag.name)) {
+          tagMap.set(tag.name, {
+            id: parseInt(tag.id) || Math.random(),
+            name: tag.name
+          });
+        }
+      });
+    });
+    
+    return Array.from(tagMap.values());
+  }, [questions]);
+  
   return (
     <Layout>
       <div className="container mx-auto mt-8">
@@ -95,7 +102,7 @@ const Questions = () => {
             <SelectContent className="max-h-48">
               <ScrollArea>
                 <SelectItem value="all-tags">All Tags</SelectItem>
-                {tags.map((tag) => (
+                {allTags.map((tag) => (
                   <SelectItem key={tag.id} value={tag.name}>
                     {tag.name}
                   </SelectItem>

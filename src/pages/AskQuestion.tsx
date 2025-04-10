@@ -9,8 +9,8 @@ import { tags } from "@/data/mockData";
 import { X, HelpCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/context/AuthContext";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { fetchQuestions } from "@/api/questions";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchQuestions, saveQuestion } from "@/api/questions";
 
 const AskQuestion = () => {
   const [title, setTitle] = useState("");
@@ -25,6 +25,34 @@ const AskQuestion = () => {
   const { data: questions } = useQuery({
     queryKey: ['questions'],
     queryFn: () => fetchQuestions(),
+  });
+
+  const mutation = useMutation({
+    mutationFn: saveQuestion,
+    onSuccess: (newQuestion) => {
+      if (newQuestion) {
+        queryClient.invalidateQueries({ queryKey: ['questions'] });
+        
+        toast({
+          title: "Question submitted",
+          description: "Your question has been posted successfully.",
+        });
+        
+        setTitle("");
+        setContent("");
+        setSelectedTags([]);
+        
+        navigate('/');
+      }
+    },
+    onError: (error) => {
+      toast({
+        title: "Error submitting question",
+        description: "There was an error posting your question. Please try again.",
+        variant: "destructive",
+      });
+      console.error("Error saving question:", error);
+    }
   });
   
   const filteredTags = tags
@@ -92,7 +120,6 @@ const AskQuestion = () => {
     }
 
     const newQuestion = {
-      id: `q${Date.now()}`,
       title,
       content,
       votes: 0,
@@ -108,25 +135,14 @@ const AskQuestion = () => {
         avatar: null
       },
       tags: selectedTags.map((tagName, index) => ({
-        id: index + 1,
+        id: `temp-${index}`,
         name: tagName,
         count: 1
-      }))
+      })),
+      answers: []
     };
 
-    const updatedQuestions = [newQuestion, ...(questions || [])];
-    queryClient.setQueryData(['questions'], updatedQuestions);
-    
-    toast({
-      title: "Question submitted",
-      description: "Your question has been posted successfully.",
-    });
-    
-    setTitle("");
-    setContent("");
-    setSelectedTags([]);
-    
-    navigate('/');
+    mutation.mutate(newQuestion);
   };
   
   return (

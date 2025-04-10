@@ -9,7 +9,90 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      question_tags: {
+        Row: {
+          question_id: string
+          tag_id: string
+        }
+        Insert: {
+          question_id: string
+          tag_id: string
+        }
+        Update: {
+          question_id?: string
+          tag_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_tags_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_tags_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "tags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      questions: {
+        Row: {
+          answer_count: number
+          content: string
+          created_at: string
+          has_best_answer: boolean
+          id: string
+          title: string
+          user_id: string
+          views: number
+          votes: number
+        }
+        Insert: {
+          answer_count?: number
+          content: string
+          created_at?: string
+          has_best_answer?: boolean
+          id?: string
+          title: string
+          user_id: string
+          views?: number
+          votes?: number
+        }
+        Update: {
+          answer_count?: number
+          content?: string
+          created_at?: string
+          has_best_answer?: boolean
+          id?: string
+          title?: string
+          user_id?: string
+          views?: number
+          votes?: number
+        }
+        Relationships: []
+      }
+      tags: {
+        Row: {
+          count: number
+          id: string
+          name: string
+        }
+        Insert: {
+          count?: number
+          id?: string
+          name: string
+        }
+        Update: {
+          count?: number
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
