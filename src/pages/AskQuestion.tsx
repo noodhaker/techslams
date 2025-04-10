@@ -1,6 +1,5 @@
-
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { tags } from "@/data/mockData";
 import { X, HelpCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/context/AuthContext";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { fetchQuestions } from "@/api/questions";
 
 const AskQuestion = () => {
   const [title, setTitle] = useState("");
@@ -16,6 +18,14 @@ const AskQuestion = () => {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  
+  const { data: questions } = useQuery({
+    queryKey: ['questions'],
+    queryFn: () => fetchQuestions(),
+  });
   
   const filteredTags = tags
     .filter(tag => tag.name.toLowerCase().includes(tagInput.toLowerCase()))
@@ -72,16 +82,51 @@ const AskQuestion = () => {
       return;
     }
     
-    // In a real app, this would be an API call
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "You must be logged in to submit a question.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const newQuestion = {
+      id: `q${Date.now()}`,
+      title,
+      content,
+      votes: 0,
+      answerCount: 0,
+      views: 0,
+      hasBestAnswer: false,
+      createdAt: new Date().toISOString(),
+      author: {
+        id: user.id,
+        name: user.user_metadata?.username || 'Anonymous',
+        username: user.user_metadata?.username || 'anonymous',
+        reputation: 1,
+        avatar: null
+      },
+      tags: selectedTags.map((tagName, index) => ({
+        id: index + 1,
+        name: tagName,
+        count: 1
+      }))
+    };
+
+    const updatedQuestions = [newQuestion, ...(questions || [])];
+    queryClient.setQueryData(['questions'], updatedQuestions);
+    
     toast({
       title: "Question submitted",
       description: "Your question has been posted successfully.",
     });
     
-    // Reset form
     setTitle("");
     setContent("");
     setSelectedTags([]);
+    
+    navigate('/');
   };
   
   return (
@@ -96,7 +141,6 @@ const AskQuestion = () => {
           </div>
           
           <form onSubmit={handleSubmitQuestion} className="space-y-6">
-            {/* Title */}
             <div>
               <div className="flex justify-between items-center mb-2">
                 <label htmlFor="title" className="block text-sm font-medium text-gray-700">
@@ -118,7 +162,6 @@ const AskQuestion = () => {
               </p>
             </div>
             
-            {/* Content */}
             <div>
               <div className="flex justify-between items-center mb-2">
                 <label htmlFor="content" className="block text-sm font-medium text-gray-700">
@@ -141,7 +184,6 @@ const AskQuestion = () => {
               </p>
             </div>
             
-            {/* Tags */}
             <div>
               <label htmlFor="tags" className="block text-sm font-medium text-gray-700 mb-2">
                 Tags
@@ -185,7 +227,6 @@ const AskQuestion = () => {
               </p>
             </div>
             
-            {/* Buttons */}
             <div className="flex items-center gap-4">
               <Button type="submit" className="bg-tech-primary hover:bg-tech-secondary">
                 Post Your Question
