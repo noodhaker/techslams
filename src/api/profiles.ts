@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { ProfileDB } from '@/types';
 
@@ -15,6 +16,7 @@ export const fetchProfileById = async (userId: string): Promise<ProfileDB | null
         best_answer_count:answers!profiles_id_fkey(count)
       `)
       .eq('id', userId)
+      .eq('answers.is_best_answer', true, { foreignTable: 'answers' })
       .single();
     
     if (error) {

@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { NavLink, Link, useNavigate } from "react-router-dom";
 import { Laptop, Menu, X, User, ChevronDown, LogOut } from "lucide-react";
@@ -12,13 +13,13 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/context/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useMobileDetection } from "@/hooks/use-mobile";
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
-  const isMobile = useIsMobile();
+  const isMobile = useMobileDetection();
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
