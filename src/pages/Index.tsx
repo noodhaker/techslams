@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
 import QuestionCard from "@/components/question/QuestionCard";
@@ -8,13 +8,39 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PlusCircle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchQuestions } from "@/api/questions";
+import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("latest");
+  const [topUsers, setTopUsers] = useState<any[]>([]);
   const { data: questions = [], isLoading } = useQuery({
     queryKey: ['questions'],
     queryFn: fetchQuestions
   });
+
+  // Fetch top users from profiles table
+  useEffect(() => {
+    const fetchTopUsers = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .order('reputation', { ascending: false })
+          .limit(5);
+          
+        if (error) {
+          console.error("Error fetching top users:", error);
+          return;
+        }
+        
+        setTopUsers(data || []);
+      } catch (error) {
+        console.error("Error in fetchTopUsers:", error);
+      }
+    };
+    
+    fetchTopUsers();
+  }, []);
 
   // Filter and sort based on the active tab
   const displayedQuestions = React.useMemo(() => {
@@ -51,23 +77,6 @@ const Index = () => {
     });
     
     return Array.from(tagMap.values());
-  }, [questions]);
-
-  // Extract unique users from all questions
-  const topUsers = React.useMemo(() => {
-    if (!questions.length) return [];
-    
-    const userMap = new Map();
-    
-    questions.forEach(q => {
-      if (!userMap.has(q.author.id)) {
-        userMap.set(q.author.id, { ...q.author });
-      }
-    });
-    
-    return Array.from(userMap.values())
-      .sort((a, b) => b.reputation - a.reputation)
-      .slice(0, 5);
   }, [questions]);
 
   if (isLoading) {
@@ -172,14 +181,14 @@ const Index = () => {
                   <li key={user.id} className="flex items-center">
                     <Link to={`/users/${user.username}`} className="flex items-center hover:text-tech-primary">
                       <img 
-                        src={user.avatar || "https://i.pravatar.cc/150?img=1"} 
-                        alt={user.name} 
+                        src={user.avatar_url || "https://i.pravatar.cc/150?img=1"} 
+                        alt={user.full_name} 
                         className="w-8 h-8 rounded-full mr-3" 
                       />
                       <div>
-                        <span className="font-medium">{user.name}</span>
+                        <span className="font-medium">{user.full_name}</span>
                         <div className="text-xs text-gray-500">
-                          {user.reputation} reputation
+                          {user.reputation || 0} reputation
                         </div>
                       </div>
                     </Link>

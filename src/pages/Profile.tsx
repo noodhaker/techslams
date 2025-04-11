@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -19,20 +20,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Eye, EyeOff, Upload, User, Mail, Lock, Github, Globe } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-
-// Mock current user data
-const currentUser = {
-  id: "user-1",
-  username: "techuser",
-  name: "John Developer",
-  email: "john@example.com",
-  bio: "Full-stack developer with 5 years of experience. Love helping others solve coding problems.",
-  avatar: "https://i.pravatar.cc/150?img=68",
-  location: "San Francisco, CA",
-  website: "https://johndeveloper.com",
-  github: "johndeveloper",
-  joinDate: "2022-05-15",
-};
+import { useAuth } from "@/context/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 const profileFormSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters" }),
@@ -59,7 +48,11 @@ type AccountFormValues = z.infer<typeof accountFormSchema>;
 
 const Profile = () => {
   const { toast } = useToast();
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(currentUser.avatar);
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [profileData, setProfileData] = useState<any>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -67,13 +60,13 @@ const Profile = () => {
   const profileForm = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
-      name: currentUser.name,
-      username: currentUser.username,
-      email: currentUser.email,
-      bio: currentUser.bio || "",
-      location: currentUser.location || "",
-      website: currentUser.website || "",
-      github: currentUser.github || "",
+      name: "",
+      username: "",
+      email: "",
+      bio: "",
+      location: "",
+      website: "",
+      github: "",
     },
   });
   
@@ -85,6 +78,58 @@ const Profile = () => {
       confirmPassword: "",
     },
   });
+  
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (!user) {
+        navigate('/login');
+        return;
+      }
+      
+      try {
+        setLoading(true);
+        
+        // Fetch the user's profile from the profiles table
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+          
+        if (error) {
+          console.error("Error fetching profile:", error);
+          toast({
+            title: "Error",
+            description: "Failed to load your profile. Please try again.",
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        if (data) {
+          setProfileData(data);
+          setAvatarPreview(data.avatar_url);
+          
+          // Update form values
+          profileForm.reset({
+            name: data.full_name || "",
+            username: data.username || "",
+            email: user.email || "",
+            bio: data.bio || "",
+            location: data.location || "",
+            website: data.website || "",
+            github: data.github || "",
+          });
+        }
+      } catch (error) {
+        console.error("Error in fetchUserProfile:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchUserProfile();
+  }, [user, navigate, toast, profileForm]);
   
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -99,28 +144,115 @@ const Profile = () => {
     }
   };
   
-  const onProfileSubmit = (data: ProfileFormValues) => {
-    console.log("Profile data:", data);
-    toast({
-      title: "Profile updated",
-      description: "Your profile information has been updated successfully.",
-    });
+  const onProfileSubmit = async (data: ProfileFormValues) => {
+    if (!user) return;
+    
+    try {
+      // Update the profile in the profiles table
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          full_name: data.name,
+          username: data.username,
+          bio: data.bio,
+          location: data.location,
+          website: data.website,
+          github: data.github,
+          avatar_url: avatarPreview,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', user.id);
+        
+      if (error) {
+        console.error("Error updating profile:", error);
+        toast({
+          title: "Error",
+          description: "Failed to update your profile. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      toast({
+        title: "Profile updated",
+        description: "Your profile information has been updated successfully.",
+      });
+      
+      // Refresh profile data
+      const { data: updatedProfile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+        
+      if (updatedProfile) {
+        setProfileData(updatedProfile);
+      }
+    } catch (error) {
+      console.error("Error in onProfileSubmit:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update your profile. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
   
-  const onAccountSubmit = (data: AccountFormValues) => {
-    console.log("Account data:", data);
-    toast({
-      title: "Account settings updated",
-      description: data.newPassword 
-        ? "Your password has been changed successfully."
-        : "Your account settings have been updated.",
-    });
-    accountForm.reset({
-      currentPassword: "",
-      newPassword: "",
-      confirmPassword: "",
-    });
+  const onAccountSubmit = async (data: AccountFormValues) => {
+    if (!user) return;
+    
+    try {
+      if (data.newPassword) {
+        // Update password
+        const { error } = await supabase.auth.updateUser({
+          password: data.newPassword
+        });
+        
+        if (error) {
+          console.error("Error updating password:", error);
+          toast({
+            title: "Error",
+            description: error.message || "Failed to update your password. Please try again.",
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        toast({
+          title: "Password updated",
+          description: "Your password has been changed successfully.",
+        });
+      } else {
+        toast({
+          title: "Account settings updated",
+          description: "Your account settings have been updated.",
+        });
+      }
+      
+      accountForm.reset({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+    } catch (error) {
+      console.error("Error in onAccountSubmit:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update account settings. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
+  
+  if (loading) {
+    return (
+      <Layout>
+        <div className="py-6">
+          <div className="text-center">Loading your profile...</div>
+        </div>
+      </Layout>
+    );
+  }
   
   return (
     <Layout>
@@ -210,7 +342,7 @@ const Profile = () => {
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                       <Mail className="h-5 w-5 text-gray-400" />
                                     </div>
-                                    <Input className="pl-10" {...field} />
+                                    <Input className="pl-10" {...field} disabled />
                                   </div>
                                 </FormControl>
                                 <FormMessage />
@@ -437,11 +569,24 @@ const Profile = () => {
                         variant="destructive"
                         onClick={() => {
                           if (confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
-                            toast({
-                              title: "Account deleted",
-                              description: "Your account has been deleted successfully.",
-                              variant: "destructive",
-                            });
+                            // Delete user account
+                            supabase.auth.admin.deleteUser(user?.id as string)
+                              .then(() => {
+                                toast({
+                                  title: "Account deleted",
+                                  description: "Your account has been deleted successfully.",
+                                  variant: "destructive",
+                                });
+                                navigate('/');
+                              })
+                              .catch(error => {
+                                console.error("Error deleting account:", error);
+                                toast({
+                                  title: "Error",
+                                  description: "Failed to delete your account. Please try again.",
+                                  variant: "destructive",
+                                });
+                              });
                           }
                         }}
                       >

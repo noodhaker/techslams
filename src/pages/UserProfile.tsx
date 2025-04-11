@@ -1,36 +1,143 @@
 
-import React from "react";
-import { useParams, Link } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { users, questions } from "@/data/mockData";
 import { Calendar, Award, MessageSquare, CheckCircle2, AlertTriangle } from "lucide-react";
 import QuestionCard from "@/components/question/QuestionCard";
 import { format } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const UserProfile = () => {
   const { username } = useParams<{ username: string }>();
+  const { toast } = useToast();
+  const navigate = useNavigate();
   
-  // Find the user with the matching username
-  const user = users.find(u => u.username === username);
+  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
+  const [userQuestions, setUserQuestions] = useState<any[]>([]);
+  const [userAnswers, setUserAnswers] = useState<any[]>([]);
+  const [userAnswersCount, setUserAnswersCount] = useState(0);
+  const [bestAnswersCount, setBestAnswersCount] = useState(0);
   
-  // Find questions and answers by this user
-  const userQuestions = questions.filter(q => q.authorId === user?.id);
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        setLoading(true);
+        
+        // Query for the user's profile based on username
+        const { data: userData, error: userError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('username', username)
+          .single();
+          
+        if (userError || !userData) {
+          console.error("Error fetching user:", userError);
+          return;
+        }
+        
+        setUser(userData);
+        
+        // Fetch questions by this user
+        const { data: questionsData, error: questionsError } = await supabase
+          .from('questions')
+          .select(`
+            *,
+            tags:question_tags(
+              tag:tags(*)
+            )
+          `)
+          .eq('user_id', userData.id)
+          .order('created_at', { ascending: false });
+          
+        if (questionsError) {
+          console.error("Error fetching questions:", questionsError);
+          return;
+        }
+        
+        // Format questions data to match expected structure
+        const formattedQuestions = questionsData.map(q => ({
+          ...q,
+          tags: q.tags.map((t: any) => t.tag),
+          author: userData,
+          createdAt: q.created_at
+        }));
+        
+        setUserQuestions(formattedQuestions);
+        
+        // Count answers provided by this user
+        const { count: answersCount, error: answersCountError } = await supabase
+          .from('answers')
+          .select('*', { count: 'exact' })
+          .eq('user_id', userData.id);
+          
+        if (answersCountError) {
+          console.error("Error counting answers:", answersCountError);
+          return;
+        }
+        
+        setUserAnswersCount(answersCount || 0);
+        
+        // Count best answers provided by this user
+        const { count: bestCount, error: bestCountError } = await supabase
+          .from('answers')
+          .select('*', { count: 'exact' })
+          .eq('user_id', userData.id)
+          .eq('is_best_answer', true);
+          
+        if (bestCountError) {
+          console.error("Error counting best answers:", bestCountError);
+          return;
+        }
+        
+        setBestAnswersCount(bestCount || 0);
+        
+        // Fetch answers with their questions
+        const { data: answersData, error: answersError } = await supabase
+          .from('answers')
+          .select(`
+            *,
+            question:questions(*)
+          `)
+          .eq('user_id', userData.id)
+          .order('created_at', { ascending: false });
+          
+        if (answersError) {
+          console.error("Error fetching answers:", answersError);
+          return;
+        }
+        
+        setUserAnswers(answersData);
+      } catch (error) {
+        console.error("Error in fetchUserData:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load user profile. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    if (username) {
+      fetchUserData();
+    }
+  }, [username, toast]);
   
-  // Count answers provided by this user
-  const userAnswersCount = questions.reduce(
-    (count, question) => count + question.answers.filter(a => a.authorId === user?.id).length,
-    0
-  );
-  
-  // Count best answers provided by this user
-  const bestAnswersCount = questions.reduce(
-    (count, question) => 
-      count + question.answers.filter(a => a.authorId === user?.id && a.isBestAnswer).length,
-    0
-  );
+  if (loading) {
+    return (
+      <Layout>
+        <div className="py-12 text-center">
+          <p className="text-gray-600">Loading user profile...</p>
+        </div>
+      </Layout>
+    );
+  }
   
   if (!user) {
     return (
@@ -47,6 +154,8 @@ const UserProfile = () => {
     );
   }
   
+  const joinDate = new Date(user.created_at);
+  
   return (
     <Layout>
       <div className="py-6">
@@ -55,23 +164,23 @@ const UserProfile = () => {
           <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 mb-6">
             <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
               <img 
-                src={user.avatar || "https://i.pravatar.cc/150?img=1"} 
-                alt={user.name} 
+                src={user.avatar_url || "https://i.pravatar.cc/150?img=1"} 
+                alt={user.full_name} 
                 className="w-32 h-32 rounded-full"
               />
               
               <div className="flex-1 text-center sm:text-left">
-                <h1 className="text-3xl font-bold text-gray-900 mb-1">{user.name}</h1>
+                <h1 className="text-3xl font-bold text-gray-900 mb-1">{user.full_name}</h1>
                 <p className="text-gray-500 mb-4">@{user.username}</p>
                 
                 <div className="flex flex-wrap justify-center sm:justify-start gap-4 mb-4">
                   <div className="flex items-center">
                     <Calendar className="h-5 w-5 text-gray-400 mr-2" />
-                    <span className="text-gray-600">Joined {format(new Date(user.joinDate), 'MMMM yyyy')}</span>
+                    <span className="text-gray-600">Joined {format(joinDate, 'MMMM yyyy')}</span>
                   </div>
                   <div className="flex items-center">
                     <Award className="h-5 w-5 text-tech-primary mr-2" />
-                    <span className="text-gray-600">{user.reputation} reputation</span>
+                    <span className="text-gray-600">{user.reputation || 0} reputation</span>
                   </div>
                   <div className="flex items-center">
                     <MessageSquare className="h-5 w-5 text-gray-400 mr-2" />
@@ -85,9 +194,9 @@ const UserProfile = () => {
                 
                 <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
                   <Badge variant="outline" className="bg-tech-light text-tech-primary">
-                    {user.role}
+                    {user.role || "Member"}
                   </Badge>
-                  {user.reputation > 1000 && (
+                  {(user.reputation || 0) > 1000 && (
                     <Badge variant="outline" className="bg-tech-light text-tech-success">
                       Expert
                     </Badge>
@@ -122,38 +231,32 @@ const UserProfile = () => {
             </TabsContent>
             
             <TabsContent value="answers" className="space-y-4 mt-4">
-              {userAnswersCount > 0 ? (
-                questions
-                  .filter(q => q.answers.some(a => a.authorId === user.id))
-                  .map(question => (
-                    <div key={question.id} className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-                      <Link to={`/questions/${question.id}`} className="text-xl font-semibold text-gray-900 hover:text-tech-primary mb-2 block">
-                        {question.title}
-                      </Link>
-                      
-                      {question.answers
-                        .filter(a => a.authorId === user.id)
-                        .map(answer => (
-                          <div key={answer.id} className="mt-4 pl-4 border-l-4 border-tech-light">
-                            <div className="prose max-w-none mb-2 line-clamp-2" dangerouslySetInnerHTML={{ __html: answer.content }} />
-                            <div className="flex items-center justify-between text-sm">
-                              <div className="flex items-center text-gray-500">
-                                <span>Votes: {answer.votes}</span>
-                                {answer.isBestAnswer && (
-                                  <span className="ml-3 flex items-center text-tech-success">
-                                    <CheckCircle2 className="h-4 w-4 mr-1" />
-                                    Best Answer
-                                  </span>
-                                )}
-                              </div>
-                              <Link to={`/questions/${question.id}`} className="text-tech-primary hover:text-tech-secondary">
-                                View answer
-                              </Link>
-                            </div>
-                          </div>
-                        ))}
+              {userAnswers.length > 0 ? (
+                userAnswers.map(answer => (
+                  <div key={answer.id} className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                    <Link to={`/questions/${answer.question.id}`} className="text-xl font-semibold text-gray-900 hover:text-tech-primary mb-2 block">
+                      {answer.question.title}
+                    </Link>
+                    
+                    <div className="mt-4 pl-4 border-l-4 border-tech-light">
+                      <div className="prose max-w-none mb-2 line-clamp-2" dangerouslySetInnerHTML={{ __html: answer.content }} />
+                      <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center text-gray-500">
+                          <span>Votes: {answer.votes}</span>
+                          {answer.is_best_answer && (
+                            <span className="ml-3 flex items-center text-tech-success">
+                              <CheckCircle2 className="h-4 w-4 mr-1" />
+                              Best Answer
+                            </span>
+                          )}
+                        </div>
+                        <Link to={`/questions/${answer.question.id}`} className="text-tech-primary hover:text-tech-secondary">
+                          View answer
+                        </Link>
+                      </div>
                     </div>
-                  ))
+                  </div>
+                ))
               ) : (
                 <div className="text-center py-8">
                   <p className="text-gray-500">This user hasn't answered any questions yet.</p>
