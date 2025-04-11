@@ -27,9 +27,8 @@ const Navbar = () => {
           <div className="flex">
             <div className="flex-shrink-0 flex items-center">
               <Link to="/" className="flex items-center">
-                <span className="text-2xl font-bold text-tech-primary">Tech</span>
-                <span className="text-2xl font-bold text-tech-secondary">Help</span>
-                <span className="text-2xl font-bold text-tech-accent">Circle</span>
+                <span className="text-2xl font-bold text-tech-primary">TechSlam</span>
+                
               </Link>
             </div>
             <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
