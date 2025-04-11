@@ -1,9 +1,9 @@
-
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Question } from "@/types";
 import { MessageSquare, Eye, ArrowUp, ArrowDown, CheckCircle2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { formatDistanceToNow } from "date-fns";
 import { voteOnQuestion, getUserQuestionVote } from "@/api/votes";
 import { useToast } from "@/hooks/use-toast";
@@ -22,7 +22,6 @@ const QuestionCard = ({ question, detailed = false }: QuestionCardProps) => {
   const { user } = useAuth();
   const formattedDate = formatDistanceToNow(new Date(question.createdAt), { addSuffix: true });
 
-  // Fetch the user's existing vote when component mounts
   useEffect(() => {
     const fetchUserVote = async () => {
       if (user) {
@@ -52,17 +51,14 @@ const QuestionCard = ({ question, detailed = false }: QuestionCardProps) => {
       const success = await voteOnQuestion(question.id, voteType);
       
       if (success) {
-        // If clicking the same vote button, toggle off
         if (userVote === voteType) {
           setVotes(prev => prev - voteType);
           setUserVote(0);
         } 
-        // If changing vote
         else if (userVote !== 0) {
           setVotes(prev => prev - userVote + voteType);
           setUserVote(voteType);
         } 
-        // If new vote
         else {
           setVotes(prev => prev + voteType);
           setUserVote(voteType);
@@ -83,7 +79,6 @@ const QuestionCard = ({ question, detailed = false }: QuestionCardProps) => {
   return (
     <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:border-tech-primary transition-colors">
       <div className="flex flex-col md:flex-row">
-        {/* Stats column */}
         <div className="flex md:flex-col md:w-24 space-x-4 md:space-x-0 md:space-y-2 md:mr-4 mb-4 md:mb-0 items-center md:items-start">
           <div className="flex flex-col items-center">
             <div className="flex items-center space-x-1">
@@ -127,7 +122,6 @@ const QuestionCard = ({ question, detailed = false }: QuestionCardProps) => {
           </div>
         </div>
         
-        {/* Content column */}
         <div className="flex-1">
           <Link to={`/questions/${question.id}`}>
             <h2 className="text-xl font-semibold text-gray-900 hover:text-tech-primary mb-2">
