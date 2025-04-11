@@ -10,6 +10,7 @@ import QuestionCard from "@/components/question/QuestionCard";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { ProfileDB } from "@/types";
 
 const UserProfile = () => {
   const { username } = useParams<{ username: string }>();
@@ -17,7 +18,7 @@ const UserProfile = () => {
   const navigate = useNavigate();
   
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<ProfileDB | null>(null);
   const [userQuestions, setUserQuestions] = useState<any[]>([]);
   const [userAnswers, setUserAnswers] = useState<any[]>([]);
   const [userAnswersCount, setUserAnswersCount] = useState(0);
@@ -33,7 +34,7 @@ const UserProfile = () => {
           .from('profiles')
           .select('*')
           .eq('username', username)
-          .single();
+          .single() as { data: ProfileDB | null, error: any };
           
         if (userError || !userData) {
           console.error("Error fetching user:", userError);
@@ -154,7 +155,7 @@ const UserProfile = () => {
     );
   }
   
-  const joinDate = new Date(user.created_at);
+  const joinDate = new Date(user.created_at || new Date());
   
   return (
     <Layout>
@@ -165,13 +166,13 @@ const UserProfile = () => {
             <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
               <img 
                 src={user.avatar_url || "https://i.pravatar.cc/150?img=1"} 
-                alt={user.full_name} 
+                alt={user.full_name || 'User'} 
                 className="w-32 h-32 rounded-full"
               />
               
               <div className="flex-1 text-center sm:text-left">
-                <h1 className="text-3xl font-bold text-gray-900 mb-1">{user.full_name}</h1>
-                <p className="text-gray-500 mb-4">@{user.username}</p>
+                <h1 className="text-3xl font-bold text-gray-900 mb-1">{user.full_name || 'Anonymous'}</h1>
+                <p className="text-gray-500 mb-4">@{user.username || 'user'}</p>
                 
                 <div className="flex flex-wrap justify-center sm:justify-start gap-4 mb-4">
                   <div className="flex items-center">

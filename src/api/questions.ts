@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import type { Question, Tag, Answer } from '@/types';
 import { incrementCounter } from './increment';
@@ -34,6 +35,25 @@ export const fetchQuestions = async (): Promise<Question[]> => {
       return [];
     }
 
+    // Fetch all user profiles for the authors
+    const userIds = [...new Set(questionData?.map(q => q.user_id) || [])];
+    let authorProfiles: Record<string, any> = {};
+    
+    if (userIds.length > 0) {
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('*')
+        .in('id', userIds) as { data: any[] | null, error: any };
+        
+      if (profilesError) {
+        console.error('Error fetching author profiles:', profilesError);
+      } else if (profilesData) {
+        profilesData.forEach(profile => {
+          authorProfiles[profile.id] = profile;
+        });
+      }
+    }
+
     // Map database questions to our Question interface
     const questions: Question[] = questionData?.map(q => {
       // Find tags for this question
@@ -49,6 +69,9 @@ export const fetchQuestions = async (): Promise<Question[]> => {
           count: tag.count
         })) || [];
 
+      // Get author profile if available
+      const authorProfile = authorProfiles[q.user_id] || null;
+
       return {
         id: q.id,
         title: q.title,
@@ -61,12 +84,12 @@ export const fetchQuestions = async (): Promise<Question[]> => {
         authorId: q.user_id,
         author: {
           id: q.user_id,
-          name: 'User',  // Default name until we have profile data
-          username: 'user', // Default username
-          reputation: 1,
-          avatar: null,
+          name: authorProfile?.full_name || 'User',
+          username: authorProfile?.username || 'user',
+          reputation: authorProfile?.reputation || 1,
+          avatar: authorProfile?.avatar_url || null,
           role: 'user' as 'user',
-          joinDate: new Date().toISOString()
+          joinDate: authorProfile?.created_at || new Date().toISOString()
         },
         tags: questionTags,
         answers: []
@@ -130,6 +153,17 @@ export const fetchQuestionById = async (id: string): Promise<Question | undefine
       return undefined;
     }
 
+    // Fetch author profile for the question
+    const { data: authorProfile, error: authorError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', questionData.user_id)
+      .single() as { data: any | null, error: any };
+      
+    if (authorError) {
+      console.error('Error fetching question author:', authorError);
+    }
+
     // Find tags for this question
     const questionTagIds = questionTagsData
       ?.map(qt => qt.tag_id) || [];
@@ -142,25 +176,48 @@ export const fetchQuestionById = async (id: string): Promise<Question | undefine
         count: tag.count
       })) || [];
 
-    // Process answers if we have any
-    const answers: Answer[] = answersData?.map(answer => ({
-      id: answer.id,
-      content: answer.content,
-      isBestAnswer: answer.is_best_answer,
-      votes: answer.votes,
-      createdAt: answer.created_at,
-      questionId: answer.question_id,
-      authorId: answer.user_id,
-      author: {
-        id: answer.user_id,
-        name: 'User', // Default until we add user profiles
-        username: 'user',
-        reputation: 1,
-        avatar: null,
-        role: 'user' as 'user',
-        joinDate: new Date().toISOString()
+    // Fetch author profiles for all answers
+    const answerAuthorIds = [...new Set(answersData?.map(a => a.user_id) || [])];
+    let answerAuthorProfiles: Record<string, any> = {};
+    
+    if (answerAuthorIds.length > 0) {
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('*')
+        .in('id', answerAuthorIds) as { data: any[] | null, error: any };
+        
+      if (profilesError) {
+        console.error('Error fetching answer author profiles:', profilesError);
+      } else if (profilesData) {
+        profilesData.forEach(profile => {
+          answerAuthorProfiles[profile.id] = profile;
+        });
       }
-    })) || [];
+    }
+
+    // Process answers if we have any
+    const answers: Answer[] = answersData?.map(answer => {
+      const answerAuthor = answerAuthorProfiles[answer.user_id] || null;
+      
+      return {
+        id: answer.id,
+        content: answer.content,
+        isBestAnswer: answer.is_best_answer,
+        votes: answer.votes,
+        createdAt: answer.created_at,
+        questionId: answer.question_id,
+        authorId: answer.user_id,
+        author: {
+          id: answer.user_id,
+          name: answerAuthor?.full_name || 'User',
+          username: answerAuthor?.username || 'user',
+          reputation: answerAuthor?.reputation || 1,
+          avatar: answerAuthor?.avatar_url || null,
+          role: 'user' as 'user',
+          joinDate: answerAuthor?.created_at || new Date().toISOString()
+        }
+      };
+    }) || [];
 
     // Map the database question to our Question interface
     const question: Question = {
@@ -175,12 +232,12 @@ export const fetchQuestionById = async (id: string): Promise<Question | undefine
       authorId: questionData.user_id,
       author: {
         id: questionData.user_id,
-        name: 'User',  // Default name until we have profile data
-        username: 'user', // Default username
-        reputation: 1,
-        avatar: null,
+        name: authorProfile?.full_name || 'User',
+        username: authorProfile?.username || 'user',
+        reputation: authorProfile?.reputation || 1,
+        avatar: authorProfile?.avatar_url || null,
         role: 'user' as 'user',
-        joinDate: new Date().toISOString()
+        joinDate: authorProfile?.created_at || new Date().toISOString()
       },
       tags: questionTags,
       answers: answers

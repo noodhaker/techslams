@@ -22,6 +22,7 @@ import { Eye, EyeOff, Upload, User, Mail, Lock, Github, Globe } from "lucide-rea
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { ProfileDB } from "@/types";
 
 const profileFormSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters" }),
@@ -50,7 +51,7 @@ const Profile = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [profileData, setProfileData] = useState<any>(null);
+  const [profileData, setProfileData] = useState<ProfileDB | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
@@ -94,7 +95,7 @@ const Profile = () => {
           .from('profiles')
           .select('*')
           .eq('id', user.id)
-          .single();
+          .single() as { data: ProfileDB | null, error: any };
           
         if (error) {
           console.error("Error fetching profile:", error);
@@ -161,7 +162,7 @@ const Profile = () => {
           avatar_url: avatarPreview,
           updated_at: new Date().toISOString(),
         })
-        .eq('id', user.id);
+        .eq('id', user.id) as { error: any };
         
       if (error) {
         console.error("Error updating profile:", error);
@@ -183,7 +184,7 @@ const Profile = () => {
         .from('profiles')
         .select('*')
         .eq('id', user.id)
-        .single();
+        .single() as { data: ProfileDB | null, error: any };
         
       if (updatedProfile) {
         setProfileData(updatedProfile);

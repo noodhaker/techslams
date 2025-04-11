@@ -1,3 +1,4 @@
+
 // Re-export types from mockData to have them centralized
 import type { 
   User,
@@ -31,4 +32,19 @@ export interface VoteDB {
   answer_id?: string;
   vote_type: number;
   created_at: string;
+}
+
+// Profile type for database
+export interface ProfileDB {
+  id: string;
+  username: string | null;
+  full_name: string | null;
+  avatar_url: string | null;
+  bio: string | null;
+  location: string | null;
+  website: string | null;
+  github: string | null;
+  reputation: number | null;
+  created_at: string | null;
+  updated_at: string | null;
 }

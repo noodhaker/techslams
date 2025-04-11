@@ -9,10 +9,11 @@ import { PlusCircle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchQuestions } from "@/api/questions";
 import { supabase } from "@/integrations/supabase/client";
+import { ProfileDB } from "@/types";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("latest");
-  const [topUsers, setTopUsers] = useState<any[]>([]);
+  const [topUsers, setTopUsers] = useState<ProfileDB[]>([]);
   const { data: questions = [], isLoading } = useQuery({
     queryKey: ['questions'],
     queryFn: fetchQuestions
@@ -22,11 +23,12 @@ const Index = () => {
   useEffect(() => {
     const fetchTopUsers = async () => {
       try {
+        // Using the correct type-safe approach to query the profiles table
         const { data, error } = await supabase
           .from('profiles')
           .select('*')
           .order('reputation', { ascending: false })
-          .limit(5);
+          .limit(5) as { data: ProfileDB[] | null, error: any };
           
         if (error) {
           console.error("Error fetching top users:", error);
@@ -182,11 +184,11 @@ const Index = () => {
                     <Link to={`/users/${user.username}`} className="flex items-center hover:text-tech-primary">
                       <img 
                         src={user.avatar_url || "https://i.pravatar.cc/150?img=1"} 
-                        alt={user.full_name} 
+                        alt={user.full_name || 'User'} 
                         className="w-8 h-8 rounded-full mr-3" 
                       />
                       <div>
-                        <span className="font-medium">{user.full_name}</span>
+                        <span className="font-medium">{user.full_name || user.username || 'Anonymous User'}</span>
                         <div className="text-xs text-gray-500">
                           {user.reputation || 0} reputation
                         </div>
