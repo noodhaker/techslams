@@ -11,6 +11,7 @@ import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ProfileDB } from "@/types";
+import { fetchProfileByUsername } from "@/api/profiles";
 
 const UserProfile = () => {
   const { username } = useParams<{ username: string }>();
@@ -29,15 +30,15 @@ const UserProfile = () => {
       try {
         setLoading(true);
         
-        // Query for the user's profile based on username
-        const { data: userData, error: userError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('username', username)
-          .single() as { data: ProfileDB | null, error: any };
+        if (!username) {
+          return;
+        }
+        
+        // Query for the user's profile based on username using our new API function
+        const userData = await fetchProfileByUsername(username);
           
-        if (userError || !userData) {
-          console.error("Error fetching user:", userError);
+        if (!userData) {
+          console.error("User not found");
           return;
         }
         
@@ -195,7 +196,7 @@ const UserProfile = () => {
                 
                 <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
                   <Badge variant="outline" className="bg-tech-light text-tech-primary">
-                    {user.role || "Member"}
+                    Member
                   </Badge>
                   {(user.reputation || 0) > 1000 && (
                     <Badge variant="outline" className="bg-tech-light text-tech-success">

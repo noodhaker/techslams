@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
@@ -21,8 +20,8 @@ import { Separator } from "@/components/ui/separator";
 import { Eye, EyeOff, Upload, User, Mail, Lock, Github, Globe } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/context/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
 import { ProfileDB } from "@/types";
+import { fetchProfileById, updateProfile } from "@/api/profiles";
 
 const profileFormSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters" }),
@@ -81,7 +80,7 @@ const Profile = () => {
   });
   
   useEffect(() => {
-    const fetchUserProfile = async () => {
+    const loadUserProfile = async () => {
       if (!user) {
         navigate('/login');
         return;
@@ -90,46 +89,35 @@ const Profile = () => {
       try {
         setLoading(true);
         
-        // Fetch the user's profile from the profiles table
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single() as { data: ProfileDB | null, error: any };
-          
-        if (error) {
-          console.error("Error fetching profile:", error);
-          toast({
-            title: "Error",
-            description: "Failed to load your profile. Please try again.",
-            variant: "destructive",
-          });
-          return;
-        }
+        const profile = await fetchProfileById(user.id);
         
-        if (data) {
-          setProfileData(data);
-          setAvatarPreview(data.avatar_url);
+        if (profile) {
+          setProfileData(profile);
+          setAvatarPreview(profile.avatar_url);
           
-          // Update form values
           profileForm.reset({
-            name: data.full_name || "",
-            username: data.username || "",
+            name: profile.full_name || "",
+            username: profile.username || "",
             email: user.email || "",
-            bio: data.bio || "",
-            location: data.location || "",
-            website: data.website || "",
-            github: data.github || "",
+            bio: profile.bio || "",
+            location: profile.location || "",
+            website: profile.website || "",
+            github: profile.github || "",
           });
         }
       } catch (error) {
-        console.error("Error in fetchUserProfile:", error);
+        console.error("Error in loadUserProfile:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load your profile. Please try again.",
+          variant: "destructive",
+        });
       } finally {
         setLoading(false);
       }
     };
     
-    fetchUserProfile();
+    loadUserProfile();
   }, [user, navigate, toast, profileForm]);
   
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -149,23 +137,18 @@ const Profile = () => {
     if (!user) return;
     
     try {
-      // Update the profile in the profiles table
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          full_name: data.name,
-          username: data.username,
-          bio: data.bio,
-          location: data.location,
-          website: data.website,
-          github: data.github,
-          avatar_url: avatarPreview,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', user.id) as { error: any };
-        
-      if (error) {
-        console.error("Error updating profile:", error);
+      const updatedProfile = await updateProfile(user.id, {
+        full_name: data.name,
+        username: data.username,
+        bio: data.bio,
+        location: data.location,
+        website: data.website,
+        github: data.github,
+        avatar_url: avatarPreview,
+        updated_at: new Date().toISOString(),
+      });
+      
+      if (!updatedProfile) {
         toast({
           title: "Error",
           description: "Failed to update your profile. Please try again.",
@@ -174,21 +157,12 @@ const Profile = () => {
         return;
       }
       
+      setProfileData(updatedProfile);
+      
       toast({
         title: "Profile updated",
         description: "Your profile information has been updated successfully.",
       });
-      
-      // Refresh profile data
-      const { data: updatedProfile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single() as { data: ProfileDB | null, error: any };
-        
-      if (updatedProfile) {
-        setProfileData(updatedProfile);
-      }
     } catch (error) {
       console.error("Error in onProfileSubmit:", error);
       toast({
@@ -204,7 +178,6 @@ const Profile = () => {
     
     try {
       if (data.newPassword) {
-        // Update password
         const { error } = await supabase.auth.updateUser({
           password: data.newPassword
         });
@@ -570,7 +543,6 @@ const Profile = () => {
                         variant="destructive"
                         onClick={() => {
                           if (confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
-                            // Delete user account
                             supabase.auth.admin.deleteUser(user?.id as string)
                               .then(() => {
                                 toast({

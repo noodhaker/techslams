@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
@@ -8,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PlusCircle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchQuestions } from "@/api/questions";
-import { supabase } from "@/integrations/supabase/client";
+import { fetchTopProfiles } from "@/api/profiles";
 import { ProfileDB } from "@/types";
 
 const Index = () => {
@@ -19,29 +18,18 @@ const Index = () => {
     queryFn: fetchQuestions
   });
 
-  // Fetch top users from profiles table
+  // Fetch top users using our new API function
   useEffect(() => {
-    const fetchTopUsers = async () => {
+    const loadTopUsers = async () => {
       try {
-        // Using the correct type-safe approach to query the profiles table
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .order('reputation', { ascending: false })
-          .limit(5) as { data: ProfileDB[] | null, error: any };
-          
-        if (error) {
-          console.error("Error fetching top users:", error);
-          return;
-        }
-        
-        setTopUsers(data || []);
+        const users = await fetchTopProfiles(5);
+        setTopUsers(users);
       } catch (error) {
-        console.error("Error in fetchTopUsers:", error);
+        console.error("Error loading top users:", error);
       }
     };
     
-    fetchTopUsers();
+    loadTopUsers();
   }, []);
 
   // Filter and sort based on the active tab
