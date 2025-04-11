@@ -1,6 +1,6 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import type { Question, Tag, Answer } from '@/types';
+import { incrementCounter } from './increment';
 
 export const fetchQuestions = async (): Promise<Question[]> => {
   try {
@@ -287,7 +287,6 @@ export const saveQuestion = async (question: Omit<Question, 'id'>): Promise<Ques
   }
 };
 
-// New function to update a question
 export const updateQuestion = async (id: string, updates: Partial<Question>): Promise<Question | null> => {
   try {
     const { data: authData, error: authError } = await supabase.auth.getUser();
@@ -382,7 +381,6 @@ export const updateQuestion = async (id: string, updates: Partial<Question>): Pr
   }
 };
 
-// Function to delete a question
 export const deleteQuestion = async (id: string): Promise<boolean> => {
   try {
     const { data: authData, error: authError } = await supabase.auth.getUser();
@@ -411,7 +409,6 @@ export const deleteQuestion = async (id: string): Promise<boolean> => {
   }
 };
 
-// Function to add an answer to a question
 export const addAnswer = async (questionId: string, content: string): Promise<Answer | null> => {
   try {
     const { data: authData, error: authError } = await supabase.auth.getUser();
@@ -438,15 +435,7 @@ export const addAnswer = async (questionId: string, content: string): Promise<An
     }
 
     // 2. Update the answer count on the question
-    const { error: updateError } = await supabase
-      .from('questions')
-      .update({ answer_count: supabase.rpc('increment_counter', { row_id: questionId }) })
-      .eq('id', questionId);
-
-    if (updateError) {
-      console.error('Error updating answer count:', updateError);
-      // We'll continue even if this fails
-    }
+    await incrementCounter(questionId);
 
     // 3. Return the answer object
     const answer: Answer = {
@@ -475,7 +464,6 @@ export const addAnswer = async (questionId: string, content: string): Promise<An
   }
 };
 
-// Function to mark an answer as best answer
 export const markBestAnswer = async (questionId: string, answerId: string): Promise<boolean> => {
   try {
     const { data: authData, error: authError } = await supabase.auth.getUser();

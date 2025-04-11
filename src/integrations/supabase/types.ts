@@ -9,6 +9,44 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      answers: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          is_best_answer: boolean
+          question_id: string
+          user_id: string
+          votes: number
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          is_best_answer?: boolean
+          question_id: string
+          user_id: string
+          votes?: number
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          is_best_answer?: boolean
+          question_id?: string
+          user_id?: string
+          votes?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "answers_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       question_tags: {
         Row: {
           question_id: string
@@ -92,6 +130,48 @@ export type Database = {
           name?: string
         }
         Relationships: []
+      }
+      votes: {
+        Row: {
+          answer_id: string | null
+          created_at: string
+          id: string
+          question_id: string | null
+          user_id: string
+          vote_type: number
+        }
+        Insert: {
+          answer_id?: string | null
+          created_at?: string
+          id?: string
+          question_id?: string | null
+          user_id: string
+          vote_type: number
+        }
+        Update: {
+          answer_id?: string | null
+          created_at?: string
+          id?: string
+          question_id?: string | null
+          user_id?: string
+          vote_type?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "votes_answer_id_fkey"
+            columns: ["answer_id"]
+            isOneToOne: false
+            referencedRelation: "answers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "votes_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

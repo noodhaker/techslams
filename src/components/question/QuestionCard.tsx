@@ -1,10 +1,13 @@
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Question } from "@/data/mockData";
+import { Question } from "@/types";
 import { MessageSquare, Eye, ArrowUp, ArrowDown, CheckCircle2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow } from "date-fns";
+import { voteOnQuestion, getUserQuestionVote } from "@/api/votes";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/context/AuthContext";
 
 interface QuestionCardProps {
   question: Question;
@@ -12,7 +15,70 @@ interface QuestionCardProps {
 }
 
 const QuestionCard = ({ question, detailed = false }: QuestionCardProps) => {
+  const [votes, setVotes] = useState(question.votes);
+  const [userVote, setUserVote] = useState(0);
+  const [isVoting, setIsVoting] = useState(false);
+  const { toast } = useToast();
+  const { user } = useAuth();
   const formattedDate = formatDistanceToNow(new Date(question.createdAt), { addSuffix: true });
+
+  // Fetch the user's existing vote when component mounts
+  useEffect(() => {
+    const fetchUserVote = async () => {
+      if (user) {
+        const vote = await getUserQuestionVote(question.id);
+        setUserVote(vote);
+      }
+    };
+    
+    fetchUserVote();
+  }, [question.id, user]);
+
+  const handleVote = async (voteType: number) => {
+    if (!user) {
+      toast({
+        title: "Login Required",
+        description: "You must be logged in to vote.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (isVoting) return;
+    
+    setIsVoting(true);
+    
+    try {
+      const success = await voteOnQuestion(question.id, voteType);
+      
+      if (success) {
+        // If clicking the same vote button, toggle off
+        if (userVote === voteType) {
+          setVotes(prev => prev - voteType);
+          setUserVote(0);
+        } 
+        // If changing vote
+        else if (userVote !== 0) {
+          setVotes(prev => prev - userVote + voteType);
+          setUserVote(voteType);
+        } 
+        // If new vote
+        else {
+          setVotes(prev => prev + voteType);
+          setUserVote(voteType);
+        }
+      }
+    } catch (error) {
+      console.error("Error voting:", error);
+      toast({
+        title: "Error",
+        description: "Failed to register your vote. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsVoting(false);
+    }
+  };
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:border-tech-primary transition-colors">
@@ -21,9 +87,25 @@ const QuestionCard = ({ question, detailed = false }: QuestionCardProps) => {
         <div className="flex md:flex-col md:w-24 space-x-4 md:space-x-0 md:space-y-2 md:mr-4 mb-4 md:mb-0 items-center md:items-start">
           <div className="flex flex-col items-center">
             <div className="flex items-center space-x-1">
-              <ArrowUp className="h-5 w-5 text-gray-400 hover:text-tech-primary cursor-pointer" />
-              <span className="text-lg font-medium text-gray-700">{question.votes}</span>
-              <ArrowDown className="h-5 w-5 text-gray-400 hover:text-tech-primary cursor-pointer" />
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className={`${userVote === 1 ? 'text-tech-primary' : 'text-gray-400'} hover:text-tech-primary h-5 w-5 p-0`}
+                onClick={() => handleVote(1)}
+                disabled={isVoting}
+              >
+                <ArrowUp className="h-5 w-5" />
+              </Button>
+              <span className="text-lg font-medium text-gray-700">{votes}</span>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className={`${userVote === -1 ? 'text-tech-primary' : 'text-gray-400'} hover:text-tech-primary h-5 w-5 p-0`}
+                onClick={() => handleVote(-1)}
+                disabled={isVoting}
+              >
+                <ArrowDown className="h-5 w-5" />
+              </Button>
             </div>
             <span className="text-xs text-gray-500">votes</span>
           </div>

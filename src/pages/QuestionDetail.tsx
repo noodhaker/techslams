@@ -3,7 +3,6 @@ import React, { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
 import QuestionCard from "@/components/question/QuestionCard";
-import AnswerCard from "@/components/question/AnswerCard";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
@@ -12,10 +11,7 @@ import {
   MessageSquare, 
   AlertTriangle, 
   Edit, 
-  Trash2, 
-  ThumbsUp, 
-  ChevronUp,
-  ChevronDown
+  Trash2
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { fetchQuestionById, addAnswer, markBestAnswer, deleteQuestion } from "@/api/questions";
@@ -333,47 +329,29 @@ const QuestionDetail = () => {
             {question.answers && question.answers.length > 0 ? (
               <div className="space-y-6">
                 {question.answers.map((answer: any) => (
-                  <div key={answer.id} className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-                    <div className="flex">
-                      {/* Voting column */}
-                      <div className="flex flex-col items-center mr-4 space-y-2">
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-500">
-                          <ChevronUp className="h-5 w-5" />
-                        </Button>
-                        <span className="text-lg font-medium">{answer.votes}</span>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-500">
-                          <ChevronDown className="h-5 w-5" />
-                        </Button>
-                        
-                        {isQuestionAuthor && !answer.isBestAnswer && (
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
-                            className="mt-2 text-xs"
-                            onClick={() => handleMarkBestAnswer(answer.id)}
-                          >
-                            <ThumbsUp className="h-3 w-3 mr-1" />
-                            Mark as Best
-                          </Button>
-                        )}
-                        
-                        {answer.isBestAnswer && (
-                          <div className="flex flex-col items-center mt-2">
-                            <div className="text-tech-success flex items-center">
-                              <ThumbsUp className="h-5 w-5" />
+                  <div key={answer.id}>
+                    {/* Use the AnswerCard component */}
+                    <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200" key={answer.id}>
+                      <div className="flex">
+                        {/* Content column */}
+                        <div className="flex-1">
+                          <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: answer.content }} />
+                          
+                          <div className="flex justify-between items-center mt-4">
+                            <div className="text-sm text-gray-500">
+                              <span>Answered by {answer.author.name}</span>
                             </div>
-                            <span className="text-xs text-tech-success font-medium mt-1">Best Answer</span>
-                          </div>
-                        )}
-                      </div>
-                      
-                      {/* Content column */}
-                      <div className="flex-1">
-                        <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: answer.content }} />
-                        
-                        <div className="flex justify-end items-center mt-4 text-sm text-gray-500">
-                          <div>
-                            Answered by {answer.author.name}
+                            
+                            {isQuestionAuthor && !answer.isBestAnswer && (
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="mt-2 text-xs"
+                                onClick={() => handleMarkBestAnswer(answer.id)}
+                              >
+                                Mark as Best
+                              </Button>
+                            )}
                           </div>
                         </div>
                       </div>
