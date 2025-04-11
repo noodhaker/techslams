@@ -1,171 +1,133 @@
 
-import React, { useState } from "react";
-import { NavLink, Link, useNavigate } from "react-router-dom";
-import { Laptop, Menu, X, User, ChevronDown, LogOut } from "lucide-react";
+import { useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Badge } from "@/components/ui/badge";
+import { Menu, X, Search, User, PlusCircle, LogOut } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { useAuth } from "@/context/AuthContext";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useMobileDetection } from "@/hooks/use-mobile";
 
 const Navbar = () => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { user, signOut } = useAuth();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const location = useLocation();
   const navigate = useNavigate();
-  const isMobile = useMobileDetection();
+  
+  // Get authentication state from our context
+  const { user, signOut } = useAuth();
+  const isAuthenticated = !!user;
 
-  const toggleMenu = () => {
-    setIsMenuOpen(!isMenuOpen);
-  };
-
-  const handleLogout = async () => {
+  const handleSignOut = async () => {
     await signOut();
-    navigate("/login");
+    navigate('/');
   };
 
   return (
-    <nav className="bg-white border-b border-gray-200">
+    <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
-          <div className="flex items-center">
-            <Link to="/" className="flex-shrink-0 flex items-center">
-              <Laptop className="h-6 w-6 text-tech-primary" />
-              <span className="ml-2 text-lg font-semibold text-gray-900">DevHelpDeck</span>
-            </Link>
-            {!isMobile && (
-              <div className="hidden md:ml-8 md:flex md:space-x-6">
-                <NavLink
-                  to="/"
-                  className={({ isActive }) =>
-                    `py-2 text-sm font-medium ${
-                      isActive
-                        ? "text-tech-primary border-b-2 border-tech-primary"
-                        : "text-gray-500 hover:text-gray-900"
-                    }`
-                  }
-                >
-                  Home
-                </NavLink>
-                <NavLink
-                  to="/questions"
-                  className={({ isActive }) =>
-                    `py-2 text-sm font-medium ${
-                      isActive
-                        ? "text-tech-primary border-b-2 border-tech-primary"
-                        : "text-gray-500 hover:text-gray-900"
-                    }`
-                  }
-                >
-                  Questions
-                </NavLink>
-                <NavLink
-                  to="/tags"
-                  className={({ isActive }) =>
-                    `py-2 text-sm font-medium ${
-                      isActive
-                        ? "text-tech-primary border-b-2 border-tech-primary"
-                        : "text-gray-500 hover:text-gray-900"
-                    }`
-                  }
-                >
-                  Tags
-                </NavLink>
-                <NavLink
-                  to="/users"
-                  className={({ isActive }) =>
-                    `py-2 text-sm font-medium ${
-                      isActive
-                        ? "text-tech-primary border-b-2 border-tech-primary"
-                        : "text-gray-500 hover:text-gray-900"
-                    }`
-                  }
-                >
-                  Users
-                </NavLink>
-              </div>
-            )}
+          <div className="flex">
+            <div className="flex-shrink-0 flex items-center">
+              <Link to="/" className="flex items-center">
+                <span className="text-2xl font-bold text-tech-primary">Tech</span>
+                <span className="text-2xl font-bold text-tech-secondary">Help</span>
+                <span className="text-2xl font-bold text-tech-accent">Circle</span>
+              </Link>
+            </div>
+            <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
+              <Link 
+                to="/" 
+                className={`${location.pathname === '/' 
+                  ? 'border-tech-primary text-tech-primary' 
+                  : 'border-transparent text-gray-500 hover:border-tech-primary hover:text-tech-primary'} 
+                  inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}
+              >
+                Home
+              </Link>
+              <Link 
+                to="/questions" 
+                className={`${location.pathname === '/questions' 
+                  ? 'border-tech-primary text-tech-primary' 
+                  : 'border-transparent text-gray-500 hover:border-tech-primary hover:text-tech-primary'} 
+                  inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}
+              >
+                Questions
+              </Link>
+              <Link 
+                to="/tags" 
+                className={`${location.pathname === '/tags' 
+                  ? 'border-tech-primary text-tech-primary' 
+                  : 'border-transparent text-gray-500 hover:border-tech-primary hover:text-tech-primary'} 
+                  inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}
+              >
+                Tags
+              </Link>
+              <Link 
+                to="/users/popular" 
+                className={`${location.pathname.startsWith('/users') 
+                  ? 'border-tech-primary text-tech-primary' 
+                  : 'border-transparent text-gray-500 hover:border-tech-primary hover:text-tech-primary'} 
+                  inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}
+              >
+                Users
+              </Link>
+            </div>
           </div>
-
-          <div className="flex items-center gap-4">
-            {!user && !isMobile && (
-              <div className="hidden md:flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => navigate("/login")}
-                >
-                  Log in
-                </Button>
-                <Button size="sm" onClick={() => navigate("/signup")}>
-                  Sign up
-                </Button>
+          
+          <div className="hidden sm:ml-6 sm:flex sm:items-center sm:space-x-4">
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search className="h-5 w-5 text-gray-400" />
               </div>
-            )}
-
-            {user && (
+              <Input
+                type="text"
+                placeholder="Search questions..."
+                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-tech-primary focus:border-tech-primary sm:text-sm"
+              />
+            </div>
+            
+            {isAuthenticated ? (
               <>
+                <Link to="/profile">
+                  <Button variant="ghost" size="icon" className="rounded-full">
+                    <User className="h-5 w-5" />
+                    <span className="sr-only">Profile</span>
+                  </Button>
+                </Link>
+                
                 <Link to="/ask">
-                  <Button size="sm" className="hidden md:flex">
+                  <Button className="bg-tech-primary hover:bg-tech-secondary">
+                    <PlusCircle className="h-4 w-4 mr-2" />
                     Ask Question
                   </Button>
                 </Link>
 
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="p-1 rounded-full md:p-2">
-                      <Avatar className="h-8 w-8 md:h-8 md:w-8">
-                        <AvatarImage src="" />
-                        <AvatarFallback className="bg-tech-light text-tech-primary">
-                          <User className="h-4 w-4 md:h-5 md:w-5" />
-                        </AvatarFallback>
-                      </Avatar>
-                      {!isMobile && (
-                        <ChevronDown className="ml-1 h-4 w-4 text-gray-500" />
-                      )}
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56">
-                    <div className="px-4 py-2">
-                      <p className="text-sm font-medium text-gray-900">
-                        {user.user_metadata?.username || user.email}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">{user.email}</p>
-                      <div className="mt-2">
-                        <Badge variant="outline" className="text-xs bg-tech-light text-tech-primary">
-                          Level 1
-                        </Badge>
-                      </div>
-                    </div>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => navigate("/profile")}>
-                      <User className="mr-2 h-4 w-4" />
-                      <span>Profile</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={handleLogout} className="text-red-600">
-                      <LogOut className="mr-2 h-4 w-4" />
-                      <span>Log out</span>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <Button variant="ghost" onClick={handleSignOut}>
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Sign out
+                </Button>
+              </>
+            ) : (
+              <>
+                <Link to="/login">
+                  <Button variant="outline">Log in</Button>
+                </Link>
+                
+                <Link to="/signup">
+                  <Button className="bg-tech-primary hover:bg-tech-secondary">Sign up</Button>
+                </Link>
               </>
             )}
-
+          </div>
+          
+          <div className="flex items-center sm:hidden">
             <button
-              className="md:hidden p-2 rounded-md focus:outline-none"
-              onClick={toggleMenu}
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-tech-primary"
             >
-              {isMenuOpen ? (
-                <X className="h-6 w-6 text-gray-500" />
+              <span className="sr-only">Open main menu</span>
+              {mobileMenuOpen ? (
+                <X className="block h-6 w-6" aria-hidden="true" />
               ) : (
-                <Menu className="h-6 w-6 text-gray-500" />
+                <Menu className="block h-6 w-6" aria-hidden="true" />
               )}
             </button>
           </div>
@@ -173,93 +135,113 @@ const Navbar = () => {
       </div>
 
       {/* Mobile menu */}
-      {isMenuOpen && (
-        <div className="md:hidden bg-white border-t border-gray-200">
-          <div className="px-2 pt-2 pb-3 space-y-1">
-            <NavLink
-              to="/"
-              className={({ isActive }) =>
-                `block px-3 py-2 rounded-md text-base font-medium ${
-                  isActive
-                    ? "text-tech-primary bg-tech-light"
-                    : "text-gray-700 hover:text-tech-primary hover:bg-gray-50"
-                }`
-              }
-              onClick={() => setIsMenuOpen(false)}
+      {mobileMenuOpen && (
+        <div className="sm:hidden">
+          <div className="pt-2 pb-3 space-y-1">
+            <Link 
+              to="/" 
+              className={`${location.pathname === '/' 
+                ? 'text-tech-primary bg-tech-light border-tech-primary' 
+                : 'text-gray-500 hover:bg-tech-light hover:border-tech-primary'} 
+                block pl-3 pr-4 py-2 border-l-4 text-base font-medium`}
+              onClick={() => setMobileMenuOpen(false)}
             >
               Home
-            </NavLink>
-            <NavLink
-              to="/questions"
-              className={({ isActive }) =>
-                `block px-3 py-2 rounded-md text-base font-medium ${
-                  isActive
-                    ? "text-tech-primary bg-tech-light"
-                    : "text-gray-700 hover:text-tech-primary hover:bg-gray-50"
-                }`
-              }
-              onClick={() => setIsMenuOpen(false)}
+            </Link>
+            <Link 
+              to="/questions" 
+              className={`${location.pathname === '/questions' 
+                ? 'text-tech-primary bg-tech-light border-tech-primary' 
+                : 'text-gray-500 hover:bg-tech-light hover:border-tech-primary'} 
+                block pl-3 pr-4 py-2 border-l-4 text-base font-medium`}
+              onClick={() => setMobileMenuOpen(false)}
             >
               Questions
-            </NavLink>
-            <NavLink
-              to="/tags"
-              className={({ isActive }) =>
-                `block px-3 py-2 rounded-md text-base font-medium ${
-                  isActive
-                    ? "text-tech-primary bg-tech-light"
-                    : "text-gray-700 hover:text-tech-primary hover:bg-gray-50"
-                }`
-              }
-              onClick={() => setIsMenuOpen(false)}
+            </Link>
+            <Link 
+              to="/tags" 
+              className={`${location.pathname === '/tags' 
+                ? 'text-tech-primary bg-tech-light border-tech-primary' 
+                : 'text-gray-500 hover:bg-tech-light hover:border-tech-primary'} 
+                block pl-3 pr-4 py-2 border-l-4 text-base font-medium`}
+              onClick={() => setMobileMenuOpen(false)}
             >
               Tags
-            </NavLink>
-            <NavLink
-              to="/users"
-              className={({ isActive }) =>
-                `block px-3 py-2 rounded-md text-base font-medium ${
-                  isActive
-                    ? "text-tech-primary bg-tech-light"
-                    : "text-gray-700 hover:text-tech-primary hover:bg-gray-50"
-                }`
-              }
-              onClick={() => setIsMenuOpen(false)}
+            </Link>
+            <Link 
+              to="/users/popular" 
+              className={`${location.pathname.startsWith('/users') 
+                ? 'text-tech-primary bg-tech-light border-tech-primary' 
+                : 'text-gray-500 hover:bg-tech-light hover:border-tech-primary'} 
+                block pl-3 pr-4 py-2 border-l-4 text-base font-medium`}
+              onClick={() => setMobileMenuOpen(false)}
             >
               Users
-            </NavLink>
-            
-            {user && (
-              <NavLink
-                to="/ask"
-                className="block px-3 py-2 rounded-md text-base font-medium text-white bg-tech-primary hover:bg-tech-secondary"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                Ask Question
-              </NavLink>
-            )}
-
-            {!user && (
-              <div className="pt-2 flex flex-col gap-2">
-                <Button
-                  variant="outline" 
-                  className="w-full justify-center"
-                  onClick={() => {
-                    navigate("/login");
-                    setIsMenuOpen(false);
-                  }}
+            </Link>
+          </div>
+          <div className="pt-4 pb-3 border-t border-gray-200">
+            {isAuthenticated ? (
+              <div>
+                <div className="flex items-center px-4">
+                  <div className="flex-shrink-0">
+                    <div className="h-10 w-10 rounded-full bg-tech-primary flex items-center justify-center">
+                      <User className="h-6 w-6 text-white" />
+                    </div>
+                  </div>
+                  <div className="ml-3">
+                    <div className="text-base font-medium text-gray-800">{user?.user_metadata?.username || 'User'}</div>
+                    <div className="text-sm font-medium text-gray-500">{user?.email}</div>
+                  </div>
+                </div>
+                <div className="mt-3 space-y-1">
+                  <Link 
+                    to="/profile" 
+                    className="block px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Your Profile
+                  </Link>
+                  <Link 
+                    to="/settings" 
+                    className="block px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Settings
+                  </Link>
+                  <Link 
+                    to="/ask" 
+                    className="block px-4 py-2 text-base font-medium text-tech-primary hover:text-tech-secondary"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Ask Question
+                  </Link>
+                  <button 
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      signOut();
+                    }}
+                    className="block w-full text-left px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100"
+                  >
+                    Sign out
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-1 px-4">
+                <Link 
+                  to="/login" 
+                  className="block py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded-md"
+                  onClick={() => setMobileMenuOpen(false)}
                 >
                   Log in
-                </Button>
-                <Button
-                  className="w-full justify-center"
-                  onClick={() => {
-                    navigate("/signup");
-                    setIsMenuOpen(false);
-                  }}
+                </Link>
+                <Link 
+                  to="/signup" 
+                  className="block py-2 text-base font-medium text-tech-primary hover:text-tech-secondary"
+                  onClick={() => setMobileMenuOpen(false)}
                 >
                   Sign up
-                </Button>
+                </Link>
               </div>
             )}
           </div>

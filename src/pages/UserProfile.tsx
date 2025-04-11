@@ -43,8 +43,6 @@ const UserProfile = () => {
         }
         
         setUser(userData);
-        setUserAnswersCount(userData.answer_count || 0);
-        setBestAnswersCount(userData.best_answer_count || 0);
         
         // Fetch questions by this user
         const { data: questionsData, error: questionsError } = await supabase
@@ -72,6 +70,33 @@ const UserProfile = () => {
         }));
         
         setUserQuestions(formattedQuestions);
+        
+        // Count answers provided by this user
+        const { count: answersCount, error: answersCountError } = await supabase
+          .from('answers')
+          .select('*', { count: 'exact' })
+          .eq('user_id', userData.id);
+          
+        if (answersCountError) {
+          console.error("Error counting answers:", answersCountError);
+          return;
+        }
+        
+        setUserAnswersCount(answersCount || 0);
+        
+        // Count best answers provided by this user
+        const { count: bestCount, error: bestCountError } = await supabase
+          .from('answers')
+          .select('*', { count: 'exact' })
+          .eq('user_id', userData.id)
+          .eq('is_best_answer', true);
+          
+        if (bestCountError) {
+          console.error("Error counting best answers:", bestCountError);
+          return;
+        }
+        
+        setBestAnswersCount(bestCount || 0);
         
         // Fetch answers with their questions
         const { data: answersData, error: answersError } = await supabase
