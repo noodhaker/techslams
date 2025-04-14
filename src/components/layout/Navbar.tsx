@@ -5,11 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Menu, X, Search, User, PlusCircle, LogOut } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/context/AuthContext";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   
   // Get authentication state from our context
   const { user, signOut } = useAuth();
@@ -51,16 +53,7 @@ const Navbar = () => {
                 Questions
               </Link>
               <Link 
-                to="/tags" 
-                className={`${location.pathname === '/tags' 
-                  ? 'border-tech-primary text-tech-primary' 
-                  : 'border-transparent text-gray-500 hover:border-tech-primary hover:text-tech-primary'} 
-                  inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}
-              >
-                Tags
-              </Link>
-              <Link 
-                to="/users/popular" 
+                to="/users" 
                 className={`${location.pathname.startsWith('/users') 
                   ? 'border-tech-primary text-tech-primary' 
                   : 'border-transparent text-gray-500 hover:border-tech-primary hover:text-tech-primary'} 
@@ -158,17 +151,7 @@ const Navbar = () => {
               Questions
             </Link>
             <Link 
-              to="/tags" 
-              className={`${location.pathname === '/tags' 
-                ? 'text-tech-primary bg-tech-light border-tech-primary' 
-                : 'text-gray-500 hover:bg-tech-light hover:border-tech-primary'} 
-                block pl-3 pr-4 py-2 border-l-4 text-base font-medium`}
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Tags
-            </Link>
-            <Link 
-              to="/users/popular" 
+              to="/users" 
               className={`${location.pathname.startsWith('/users') 
                 ? 'text-tech-primary bg-tech-light border-tech-primary' 
                 : 'text-gray-500 hover:bg-tech-light hover:border-tech-primary'} 

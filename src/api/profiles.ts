@@ -51,6 +51,28 @@ export const fetchProfileByUsername = async (username: string): Promise<ProfileD
 };
 
 /**
+ * Fetch all profiles
+ */
+export const fetchAllProfiles = async (): Promise<ProfileDB[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .order('reputation', { ascending: false });
+    
+    if (error) {
+      console.error('Error fetching all profiles:', error);
+      return [];
+    }
+    
+    return data as ProfileDB[];
+  } catch (e) {
+    console.error("Error in fetchAllProfiles:", e);
+    return [];
+  }
+};
+
+/**
  * Fetch top profiles by reputation
  */
 export const fetchTopProfiles = async (limit: number = 5): Promise<ProfileDB[]> => {

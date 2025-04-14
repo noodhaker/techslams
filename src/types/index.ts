@@ -1,4 +1,3 @@
-
 // Re-export types from mockData to have them centralized
 import type { 
   User,
@@ -47,4 +46,13 @@ export interface ProfileDB {
   reputation: number | null;
   created_at: string | null;
   updated_at: string | null;
+}
+
+export interface MessageDB {
+  id: string;
+  sender_id: string;
+  receiver_id: string;
+  content: string;
+  created_at: string;
+  read: boolean;
 }

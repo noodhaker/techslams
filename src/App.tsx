@@ -10,7 +10,7 @@ import AskQuestion from "./pages/AskQuestion";
 import EditQuestion from "./pages/EditQuestion";
 import UserProfile from "./pages/UserProfile";
 import Questions from "./pages/Questions";
-import Tags from "./pages/Tags";
+import Users from "./pages/Users"; // Add the Users import
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Profile from "./pages/Profile";
@@ -47,7 +47,7 @@ const AppRoutes = () => {
           <AskQuestion />
         </ProtectedRoute>
       } />
-      <Route path="/tags" element={<Tags />} />
+      <Route path="/users" element={<Users />} /> 
       <Route path="/users/:username" element={<UserProfile />} />
       <Route path="/profile" element={
         <ProtectedRoute>
