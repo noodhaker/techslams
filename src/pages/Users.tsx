@@ -7,20 +7,10 @@ import UserCard from '@/components/users/UserCard';
 import ChatDialog from '@/components/users/ChatDialog';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 
 const Users = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [chatUser, setChatUser] = useState<{ id: string; name: string } | null>(null);
-  
-  // Enable real-time updates for the messages table
-  useEffect(() => {
-    const enableRealtimeForMessages = async () => {
-      await supabase.rpc('enable_realtime_for_table', { table_name: 'messages' });
-    };
-    
-    enableRealtimeForMessages();
-  }, []);
   
   const { data: profiles, isLoading, error } = useQuery({
     queryKey: ['profiles'],

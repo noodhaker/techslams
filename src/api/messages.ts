@@ -10,7 +10,7 @@ export const fetchMessages = async (senderId: string, receiverId: string): Promi
     const { data, error } = await supabase
       .from('messages')
       .select('*')
-      .or(`and(sender_id.eq.${senderId},receiver_id.eq.${receiverId}),and(sender_id.eq.${receiverId},receiver_id.eq.${senderId})`)
+      .or(`sender_id.eq.${senderId},receiver_id.eq.${receiverId},sender_id.eq.${receiverId},receiver_id.eq.${senderId}`)
       .order('created_at', { ascending: true });
     
     if (error) {
