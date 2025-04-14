@@ -17,6 +17,17 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Eye, EyeOff, Upload, User, Mail, Lock, Github, Globe } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/context/AuthContext";
@@ -50,10 +61,11 @@ type AccountFormValues = z.infer<typeof accountFormSchema>;
 const Profile = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const [profileData, setProfileData] = useState<ProfileDB | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -216,6 +228,62 @@ const Profile = () => {
         description: "Failed to update account settings. Please try again.",
         variant: "destructive",
       });
+    }
+  };
+  
+  const handleDeleteAccount = async () => {
+    if (!user) return;
+    
+    try {
+      setDeleteLoading(true);
+      
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', user.id);
+        
+      if (profileError) {
+        console.error("Error deleting profile:", profileError);
+        toast({
+          title: "Error",
+          description: "Failed to delete your profile. Please try again.",
+          variant: "destructive",
+        });
+        setDeleteLoading(false);
+        return;
+      }
+      
+      await signOut();
+      
+      const { error: authError } = await supabase.auth.admin.deleteUser(user.id);
+      
+      if (authError) {
+        console.error("Error deleting auth user:", authError);
+        toast({
+          title: "Error",
+          description: "Your profile was deleted but there was an issue with your account. Please contact support.",
+          variant: "destructive",
+        });
+        setDeleteLoading(false);
+        navigate('/');
+        return;
+      }
+      
+      toast({
+        title: "Account deleted",
+        description: "Your account has been deleted successfully.",
+      });
+      
+      navigate('/');
+    } catch (error) {
+      console.error("Error in handleDeleteAccount:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete your account. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setDeleteLoading(false);
     }
   };
   
@@ -539,33 +607,32 @@ const Profile = () => {
                       <p className="text-sm text-gray-500 mb-4">
                         Once you delete your account, there is no going back. Please be certain.
                       </p>
-                      <Button 
-                        type="button" 
-                        variant="destructive"
-                        onClick={() => {
-                          if (confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
-                            supabase.auth.admin.deleteUser(user?.id as string)
-                              .then(() => {
-                                toast({
-                                  title: "Account deleted",
-                                  description: "Your account has been deleted successfully.",
-                                  variant: "destructive",
-                                });
-                                navigate('/');
-                              })
-                              .catch(error => {
-                                console.error("Error deleting account:", error);
-                                toast({
-                                  title: "Error",
-                                  description: "Failed to delete your account. Please try again.",
-                                  variant: "destructive",
-                                });
-                              });
-                          }
-                        }}
-                      >
-                        Delete Account
-                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="destructive">
+                            Delete Account
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This action cannot be undone. This will permanently delete your account
+                              and remove your data from our servers.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction 
+                              onClick={handleDeleteAccount}
+                              disabled={deleteLoading}
+                              className="bg-red-600 hover:bg-red-700"
+                            >
+                              {deleteLoading ? "Deleting..." : "Yes, delete my account"}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </form>
                 </Form>
