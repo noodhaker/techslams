@@ -1,8 +1,7 @@
-
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Search, User, PlusCircle, LogOut } from "lucide-react";
+import { Menu, X, Search, User, PlusCircle, LogOut, Shield } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/context/AuthContext";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -13,7 +12,6 @@ const Navbar = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   
-  // Get authentication state from our context
   const { user, signOut } = useAuth();
   const isAuthenticated = !!user;
 
@@ -30,7 +28,6 @@ const Navbar = () => {
             <div className="flex-shrink-0 flex items-center">
               <Link to="/" className="flex items-center">
                 <span className="text-2xl font-bold text-tech-primary">TechSlam</span>
-                
               </Link>
             </div>
             <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
@@ -92,6 +89,13 @@ const Navbar = () => {
                   </Button>
                 </Link>
 
+                <Link to="/admin">
+                  <Button variant="outline" size="sm">
+                    <Shield className="h-4 w-4 mr-2" />
+                    Admin
+                  </Button>
+                </Link>
+
                 <Button variant="ghost" onClick={handleSignOut}>
                   <LogOut className="h-4 w-4 mr-2" />
                   Sign out
@@ -126,7 +130,6 @@ const Navbar = () => {
         </div>
       </div>
 
-      {/* Mobile menu */}
       {mobileMenuOpen && (
         <div className="sm:hidden">
           <div className="pt-2 pb-3 space-y-1">
@@ -196,6 +199,13 @@ const Navbar = () => {
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     Ask Question
+                  </Link>
+                  <Link 
+                    to="/admin" 
+                    className="block px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Admin Dashboard
                   </Link>
                   <button 
                     onClick={() => {

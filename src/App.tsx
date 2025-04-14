@@ -10,11 +10,12 @@ import AskQuestion from "./pages/AskQuestion";
 import EditQuestion from "./pages/EditQuestion";
 import UserProfile from "./pages/UserProfile";
 import Questions from "./pages/Questions";
-import Users from "./pages/Users"; // Add the Users import
+import Users from "./pages/Users";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
+import AdminDashboard from "./pages/AdminDashboard"; // Add the AdminDashboard import
 
 const queryClient = new QueryClient();
 
@@ -56,6 +57,11 @@ const AppRoutes = () => {
       } />
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
+      <Route path="/admin" element={
+        <ProtectedRoute>
+          <AdminDashboard />
+        </ProtectedRoute>
+      } />
       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
       <Route path="*" element={<NotFound />} />
     </Routes>

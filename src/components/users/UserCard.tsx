@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ProfileDB } from '@/types';
 import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 
 interface UserCardProps {
   profile: ProfileDB;
@@ -15,7 +16,22 @@ interface UserCardProps {
 
 const UserCard = ({ profile, onStartChat }: UserCardProps) => {
   const { user } = useAuth();
+  const { toast } = useToast();
   const isCurrentUser = useMemo(() => user?.id === profile.id, [user, profile.id]);
+  const isAuthenticated = !!user;
+
+  const handleMessageClick = () => {
+    if (!isAuthenticated) {
+      toast({
+        title: "Login Required",
+        description: "Please login to send messages to other users.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    onStartChat(profile.id, profile.username || 'User');
+  };
 
   return (
     <Card className="overflow-hidden">
@@ -60,7 +76,8 @@ const UserCard = ({ profile, onStartChat }: UserCardProps) => {
             <Button 
               variant="outline" 
               size="sm" 
-              onClick={() => onStartChat(profile.id, profile.username || 'User')}
+              onClick={handleMessageClick}
+              className={!isAuthenticated ? "opacity-70" : ""}
             >
               <MessageCircle className="h-4 w-4 mr-2" />
               Message

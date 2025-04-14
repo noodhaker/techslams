@@ -55,3 +55,47 @@ export const sendMessage = async (
     return null;
   }
 };
+
+/**
+ * Delete a message by ID (admin function)
+ */
+export const deleteMessage = async (messageId: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('messages')
+      .delete()
+      .eq('id', messageId);
+    
+    if (error) {
+      console.error('Error deleting message:', error);
+      return false;
+    }
+    
+    return true;
+  } catch (e) {
+    console.error("Error in deleteMessage:", e);
+    return false;
+  }
+};
+
+/**
+ * Get all messages (admin function)
+ */
+export const getAllMessages = async (): Promise<MessageDB[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('messages')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.error('Error fetching all messages:', error);
+      return [];
+    }
+    
+    return data as MessageDB[];
+  } catch (e) {
+    console.error("Error in getAllMessages:", e);
+    return [];
+  }
+};
