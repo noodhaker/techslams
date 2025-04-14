@@ -35,8 +35,10 @@ const AdminDashboard = () => {
   const [deleteMessageDialogOpen, setDeleteMessageDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<string | null>(null);
   const [messageToDelete, setMessageToDelete] = useState<string | null>(null);
+  const [makeAdminDialogOpen, setMakeAdminDialogOpen] = useState(false);
+  const [userToMakeAdmin, setUserToMakeAdmin] = useState<string | null>(null);
 
-  // Check if current user is admin (this is a simplified check - in a real app, you'd check against roles in the database)
+  // Check if current user is admin 
   useEffect(() => {
     const checkAdmin = async () => {
       if (!user) {
@@ -44,36 +46,28 @@ const AdminDashboard = () => {
         return;
       }
       
-      // For this example, we'll consider a user with ID that matches to be an admin
-      // In a real app, you would check against a roles table or a specific admin flag
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, username')
+        .select('is_admin')
         .eq('id', user.id)
         .single();
       
-      if (error) {
+      if (error || !data?.is_admin) {
         console.error('Error checking admin status:', error);
-        navigate('/');
-        return;
-      }
-      
-      // For this example: we'll consider the first user who logs in as admin
-      // You should implement proper role-based access control in a real app
-      setIsAdmin(true);
-      
-      if (!isAdmin) {
         toast({
           title: "Access Denied",
           description: "You do not have admin privileges.",
           variant: "destructive",
         });
         navigate('/');
+        return;
       }
+      
+      setIsAdmin(true);
     };
     
     checkAdmin();
-  }, [user, navigate, toast, isAdmin]);
+  }, [user, navigate, toast]);
 
   // Fetch users and messages
   useEffect(() => {
@@ -189,6 +183,44 @@ const AdminDashboard = () => {
     }
   };
 
+  // Handle making a user admin
+  const handleMakeAdmin = async (userId: string) => {
+    try {
+      setLoading(true);
+      
+      // Update user's profile to set is_admin to true
+      const { error } = await supabase
+        .from('profiles')
+        .update({ is_admin: true })
+        .eq('id', userId);
+      
+      if (error) {
+        throw error;
+      }
+      
+      // Update the users list
+      setUsers(users.map(user => 
+        user.id === userId ? { ...user, is_admin: true } : user
+      ));
+      
+      toast({
+        title: "Admin Rights Granted",
+        description: "The user has been made an admin.",
+      });
+    } catch (error) {
+      console.error('Error making user admin:', error);
+      toast({
+        title: "Error",
+        description: "Failed to make user an admin. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+      setMakeAdminDialogOpen(false);
+      setUserToMakeAdmin(null);
+    }
+  };
+
   if (loading && !isAdmin) {
     return (
       <Layout>
@@ -237,7 +269,7 @@ const AdminDashboard = () => {
                         <TableHead>Username</TableHead>
                         <TableHead>Full Name</TableHead>
                         <TableHead>Location</TableHead>
-                        <TableHead>Reputation</TableHead>
+                        <TableHead>Role</TableHead>
                         <TableHead>Actions</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -247,19 +279,35 @@ const AdminDashboard = () => {
                           <TableCell>{user.username || 'N/A'}</TableCell>
                           <TableCell>{user.full_name || 'N/A'}</TableCell>
                           <TableCell>{user.location || 'N/A'}</TableCell>
-                          <TableCell>{user.reputation || 0}</TableCell>
+                          <TableCell>{user.is_admin ? 'Admin' : 'User'}</TableCell>
                           <TableCell>
-                            <Button 
-                              variant="destructive" 
-                              size="sm" 
-                              onClick={() => {
-                                setUserToDelete(user.id);
-                                setDeleteUserDialogOpen(true);
-                              }}
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Delete
-                            </Button>
+                            <div className="flex space-x-2">
+                              <Button 
+                                variant="destructive" 
+                                size="sm" 
+                                onClick={() => {
+                                  setUserToDelete(user.id);
+                                  setDeleteUserDialogOpen(true);
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete
+                              </Button>
+                              
+                              {!user.is_admin && (
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  onClick={() => {
+                                    setUserToMakeAdmin(user.id);
+                                    setMakeAdminDialogOpen(true);
+                                  }}
+                                >
+                                  <Shield className="h-4 w-4 mr-2" />
+                                  Make Admin
+                                </Button>
+                              )}
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -360,6 +408,27 @@ const AdminDashboard = () => {
               className="bg-red-600 hover:bg-red-700"
             >
               Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      
+      {/* Make Admin Confirmation Dialog */}
+      <AlertDialog open={makeAdminDialogOpen} onOpenChange={setMakeAdminDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Make User an Admin</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will grant the user administrative privileges. They will be able to manage all users and content.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => userToMakeAdmin && handleMakeAdmin(userToMakeAdmin)}
+              className="bg-tech-primary hover:bg-tech-secondary"
+            >
+              Confirm
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -122,3 +122,25 @@ export const updateProfile = async (
     return null;
   }
 };
+
+/**
+ * Make a user an admin
+ */
+export const makeUserAdmin = async (userId: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('profiles')
+      .update({ is_admin: true })
+      .eq('id', userId);
+    
+    if (error) {
+      console.error('Error making user admin:', error);
+      return false;
+    }
+    
+    return true;
+  } catch (e) {
+    console.error("Error in makeUserAdmin:", e);
+    return false;
+  }
+};

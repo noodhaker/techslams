@@ -1,19 +1,48 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, X, Search, User, PlusCircle, LogOut, Shield } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/context/AuthContext";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { supabase } from '@/integrations/supabase/client';
 
 const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   
   const { user, signOut } = useAuth();
   const isAuthenticated = !!user;
+
+  // Check if current user is admin
+  useEffect(() => {
+    const checkAdmin = async () => {
+      if (user) {
+        try {
+          // Check if user exists in profiles table
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('is_admin')
+            .eq('id', user.id)
+            .single();
+          
+          if (!error && data) {
+            setIsAdmin(!!data.is_admin);
+          }
+        } catch (err) {
+          console.error("Error checking admin status:", err);
+        }
+      } else {
+        setIsAdmin(false);
+      }
+    };
+    
+    checkAdmin();
+  }, [user]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -89,12 +118,14 @@ const Navbar = () => {
                   </Button>
                 </Link>
 
-                <Link to="/admin">
-                  <Button variant="outline" size="sm">
-                    <Shield className="h-4 w-4 mr-2" />
-                    Admin
-                  </Button>
-                </Link>
+                {isAdmin && (
+                  <Link to="/admin">
+                    <Button variant="outline" size="sm">
+                      <Shield className="h-4 w-4 mr-2" />
+                      Admin
+                    </Button>
+                  </Link>
+                )}
 
                 <Button variant="ghost" onClick={handleSignOut}>
                   <LogOut className="h-4 w-4 mr-2" />
@@ -200,13 +231,15 @@ const Navbar = () => {
                   >
                     Ask Question
                   </Link>
-                  <Link 
-                    to="/admin" 
-                    className="block px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    Admin Dashboard
-                  </Link>
+                  {isAdmin && (
+                    <Link 
+                      to="/admin" 
+                      className="block px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      Admin Dashboard
+                    </Link>
+                  )}
                   <button 
                     onClick={() => {
                       setMobileMenuOpen(false);
